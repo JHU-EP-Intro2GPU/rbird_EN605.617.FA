@@ -5,8 +5,8 @@ g++ -o hello_world helloworld.cpp
 nvcc -o hello_nvidia hello-world.cu
 
 # Build opencl hello world
-g++ -o hello_open_cl hello_world_cl.c -lOpenCL
+nvcc -o hello_open_cl hello_world_cl.c -lOpenCL
 
 # Build opencl device query
-g++ -o clDeviceQuery clDeviceQuery.cpp -lOpenCL
+nvcc -o clDeviceQuery clDeviceQuery.cpp -lOpenCL
 
