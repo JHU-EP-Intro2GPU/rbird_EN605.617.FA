@@ -1,0 +1,84 @@
+ccc_v1_w_DN6k_191794@runweb10:~/module0$ nvcc -o clDeviceQuery clDeviceQuery.cpp -lOpenCL                                                                                                               
+nvcc warning : The 'compute_20', 'sm_20', and 'sm_21' architectures are deprecated, and may be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).                       
+clDeviceQuery.cpp: In function ‘void clPrintDevInfo(cl_device_id)’:                                                                                                                                     
+clDeviceQuery.cpp:52:69: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                             
+  printf("  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:\t%u\n", workitem_dims);                                                                                                                                 
+                                                                     ^                                                                                                                                  
+clDeviceQuery.cpp:57:114: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+  printf("  CL_DEVICE_MAX_WORK_ITEM_SIZES:\t%u / %u / %u \n", workitem_size[0], workitem_size[1], workitem_size[2]);                                                                                    
+                                                                                                                  ^                                                                                     
+clDeviceQuery.cpp:57:114: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 3 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+clDeviceQuery.cpp:57:114: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 4 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+clDeviceQuery.cpp:62:65: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                             
+  printf("  CL_DEVICE_MAX_WORK_GROUP_SIZE:\t%u\n", workgroup_size);                                                                                                                                     
+                                                                 ^                                                                                                                                      
+clDeviceQuery.cpp:129:50: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+  printf("\t\t\t2D_MAX_WIDTH\t %u\n", szMaxDims[0]);                                                                                                                                                    
+                                                  ^                                                                                                                                                     
+clDeviceQuery.cpp:131:55: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+  printf("\t\t\t\t\t2D_MAX_HEIGHT\t %u\n", szMaxDims[1]);                                                                                                                                               
+                                                       ^                                                                                                                                                
+clDeviceQuery.cpp:133:54: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+  printf("\t\t\t\t\t3D_MAX_WIDTH\t %u\n", szMaxDims[2]);                                                                                                                                                
+                                                      ^                                                                                                                                                 
+clDeviceQuery.cpp:135:55: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+  printf("\t\t\t\t\t3D_MAX_HEIGHT\t %u\n", szMaxDims[3]);                                                                                                                                               
+                                                       ^                                                                                                                                                
+clDeviceQuery.cpp:137:54: warning: format ‘%u’ expects argument of type ‘unsigned int’, but argument 2 has type ‘size_t {aka long unsigned int}’ [-Wformat=]                                            
+  printf("\t\t\t\t\t3D_MAX_DEPTH\t %u\n", szMaxDims[4]);                                                                                                                                                
+                                                      ^                                                                                                                                                 
+ccc_v1_w_DN6k_191794@runweb10:~/module0$ ./clDeviceQuery                                                                                                                                                
+clDeviceQuery Starting...                                                                                                                                                                               
+                                                                                                                                                                                                        
+1 OpenCL Platforms found                                                                                                                                                                                
+                                                                                                                                                                                                        
+ CL_PLATFORM_NAME:      NVIDIA CUDA                                                                                                                                                                     
+ CL_PLATFORM_VERSION:   OpenCL 1.2 CUDA 9.2.147                                                                                                                                                         
+OpenCL Device Info:                                                                                                                                                                                     
+                                                                                                                                                                                                        
+ 1 devices found supporting OpenCL on: NVIDIA CUDA                                                                                                                                                      
+                                                                                                                                                                                                        
+ ----------------------------------                                                                                                                                                                     
+Device Tesla K80                                                                                                                                                                                       
+ ---------------------------------                                                                                                                                                                      
+  CL_DEVICE_NAME:                       Tesla K80                                                                                                                                                       
+  CL_DEVICE_VENDOR:                     NVIDIA Corporation                                                                                                                                              
+  CL_DRIVER_VERSION:                    396.37                                                                                                                                                          
+  CL_DEVICE_TYPE:                       CL_DEVICE_TYPE_GPU                                                                                                                                              
+  CL_DEVICE_MAX_COMPUTE_UNITS:          13                                                                                                                                                              
+  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:   3                                                                                                                                                               
+  CL_DEVICE_MAX_WORK_ITEM_SIZES:        1024 / 1024 / 64                                                                                                                                                
+  CL_DEVICE_MAX_WORK_GROUP_SIZE:        1024                                                                                                                                                            
+  CL_DEVICE_MAX_CLOCK_FREQUENCY:        823 MHz                                                                                                                                                         
+  CL_DEVICE_ADDRESS_BITS:               64                                                                                                                                                              
+  CL_DEVICE_MAX_MEM_ALLOC_SIZE:         2860 MByte                                                                                                                                                      
+  CL_DEVICE_GLOBAL_MEM_SIZE:            11441 MByte                                                                                                                                                     
+  CL_DEVICE_ERROR_CORRECTION_SUPPORT:   yes                                                                                                                                                             
+  CL_DEVICE_LOCAL_MEM_TYPE:             local                                                                                                                                                           
+  CL_DEVICE_LOCAL_MEM_SIZE:             48 KByte                                                                                                                                                        
+  CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:   64 KByte                                                                                                                                                        
+  CL_DEVICE_QUEUE_PROPERTIES:           CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE                                                                                                                          
+  CL_DEVICE_QUEUE_PROPERTIES:           CL_QUEUE_PROFILING_ENABLE                                                                                                                                       
+  CL_DEVICE_IMAGE_SUPPORT:              1                                                                                                                                                               
+  CL_DEVICE_MAX_READ_IMAGE_ARGS:        256                                                                                                                                                             
+  CL_DEVICE_MAX_WRITE_IMAGE_ARGS:       16                                                                                                                                                              
+                                                                                                                                                                                                        
+  CL_DEVICE_IMAGE <dim>                 2D_MAX_WIDTH     16384                                                                                                                                          
+                                        2D_MAX_HEIGHT    16384                                                                                                                                          
+                                        3D_MAX_WIDTH     4096                                                                                                                                           
+                                        3D_MAX_HEIGHT    4096                                                                                                                                           
+                                        3D_MAX_DEPTH     4096                                                                                                                                           
+  CL_DEVICE_PREFERRED_VECTOR_WIDTH_<t>  CHAR 1, SHORT 1, INT 1, FLOAT 1, DOUBLE 1                                                                                                                       
+                                                                                                                                                                                                        
+                                                                                                                                                                                                        
+clDeviceQuery, Platform Name = NVIDIA CUDA, Platform Version = OpenCL 1.2 CUDA 9.2.147, NumDevs = 1, Device = Tesla K80                                                                                 
+                                                                                                                                                                                                        
+System Info:                                                                                                                                                                                            
+                                                                                                                                                                                                        
+ Local Time/Date =  21:35:56, 08/26/2020                                                                                                                                                                
+ CPU Name: Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz                                                                                                                                                    
+ # of CPU processors: 4                                                                                                                                                                                 
+ Linux version 4.4.0-130-generic (buildd@lgw01-amd64-039) (gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.9) ) #156-Ubuntu SMP Thu Jun 14 08:53:28 UTC 2018                                    
+                                                                                                                                                                                                        
+                                                                                                                                                                                                        
+TEST PASSED                                                                                

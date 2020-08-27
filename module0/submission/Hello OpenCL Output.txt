@@ -1,0 +1,8 @@
+ccc_v1_w_DN6k_191794@runweb10:~/module0$ ls                                                                                                                                                             
+build.sh  clDeviceQuery  clDeviceQuery.cpp  hello_nvidia  hello_world  hello_world_cl.c  helloworld.cpp  hello-world.cu  README.md  verify.sh                                                           
+ccc_v1_w_DN6k_191794@runweb10:~/module0$ nvcc -o hello_open_cl hello_world_cl.c -lOpenCL                                                                                                                
+nvcc warning : The 'compute_20', 'sm_20', and 'sm_21' architectures are deprecated, and may be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).                       
+ccc_v1_w_DN6k_191794@runweb10:~/module0$ ls                                                                                                                                                             
+build.sh  clDeviceQuery  clDeviceQuery.cpp  hello_nvidia  hello_open_cl  hello_world  hello_world_cl.c  helloworld.cpp  hello-world.cu  README.md  verify.sh                                            
+ccc_v1_w_DN6k_191794@runweb10:~/module0$ ./hello_open_cl                                                                                                                                                
+Hello World!    
