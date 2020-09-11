@@ -1,0 +1,1 @@
+gcc example.cpp -pthread -o example.o
