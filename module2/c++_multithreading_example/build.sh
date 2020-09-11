@@ -1,1 +1,1 @@
-gcc example.cpp -pthread -o example.o
+gcc example.cpp -pthread -std=c++11 -o example.o
