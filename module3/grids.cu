@@ -62,6 +62,24 @@ int main(void)
 	const dim3 threads_square(16, 8); /* 16 * 8 */
 	const dim3 blocks_square(2, 2);
 
+	/* Total thread count = 8 * 16 = 128 */
+	const dim3 reverse_threads_square(8, 16); /* 8 * 16 */
+	const dim3 reverse_blocks_square(2, 2);
+
+	/* Total thread count = 4 * 32 = 128 */
+	const dim3 reverse_threads_rect(4, 32); /* 4 * 32 */
+	const dim3 reverse_blocks_rect(4, 1);
+
+	/* Total thread count = 4 * 2 = 8 */
+	const dim3 few_threads_rect(4, 2); /* 4 * 2 */
+	const dim3 many_blocks_rect(8, 2);
+
+
+	/* Total thread count = 4 * 2 = 8 */
+	const dim3 many_threads(1, 512); /* 4 * 2 */
+	const dim3 one_blocks_rect(1, 1);
+
+
 	/* Needed to wait for a character at exit */
 	char ch;
 
@@ -91,12 +109,16 @@ int main(void)
 	cudaMalloc((void**)&gpu_grid_dimy, ARRAY_SIZE_IN_BYTES);
 	cudaMalloc((void**)&gpu_block_dimy, ARRAY_SIZE_IN_BYTES);
 
-	for (int kernel = 0; kernel < 2; kernel++)
+	for (int kernel = 0; kernel < 6; kernel++)
 	{
+		dim3 threads_dim;
+		dim3 blocks_dim;
 		switch (kernel)
 		{
 		case 0:
 		{
+			blocks_dim = blocks_rect;
+			threads_dim = threads_rect;
 			/* Execute our kernel */
 			what_is_my_id_2d_A << <blocks_rect, threads_rect >> > (gpu_block_x, gpu_block_y,
 				gpu_thread, gpu_calc_thread, gpu_xthread, gpu_ythread, gpu_grid_dimx, gpu_block_dimx,
@@ -105,11 +127,55 @@ int main(void)
 
 		case 1:
 		{
+			blocks_dim = blocks_square;
+			threads_dim = threads_square;
+
 			/* Execute our kernel */
 			what_is_my_id_2d_A << <blocks_square, threads_square >> > (gpu_block_x, gpu_block_y,
 				gpu_thread, gpu_calc_thread, gpu_xthread, gpu_ythread, gpu_grid_dimx, gpu_block_dimx,
 				gpu_grid_dimy, gpu_block_dimy);
 		} break;
+		case 2:
+		{
+			blocks_dim = reverse_blocks_square;
+			threads_dim = reverse_threads_square;
+
+			/* Execute our kernel */
+			what_is_my_id_2d_A << <reverse_blocks_square, reverse_threads_square >> > (gpu_block_x, gpu_block_y,
+				gpu_thread, gpu_calc_thread, gpu_xthread, gpu_ythread, gpu_grid_dimx, gpu_block_dimx,
+				gpu_grid_dimy, gpu_block_dimy);
+		} break;
+		case 3:
+		{
+			blocks_dim = reverse_blocks_square;
+			threads_dim = reverse_threads_rect;
+
+			/* Execute our kernel */
+			what_is_my_id_2d_A << <reverse_blocks_square, reverse_threads_rect >> > (gpu_block_x, gpu_block_y,
+				gpu_thread, gpu_calc_thread, gpu_xthread, gpu_ythread, gpu_grid_dimx, gpu_block_dimx,
+				gpu_grid_dimy, gpu_block_dimy);
+		} break;
+		case 4:
+		{
+			blocks_dim = many_blocks_rect;
+			threads_dim = few_threads_rect;
+
+			/* Execute our kernel */
+			what_is_my_id_2d_A << <many_blocks_rect, few_threads_rect >> > (gpu_block_x, gpu_block_y,
+				gpu_thread, gpu_calc_thread, gpu_xthread, gpu_ythread, gpu_grid_dimx, gpu_block_dimx,
+				gpu_grid_dimy, gpu_block_dimy);
+		} break;
+		case 5:
+		{
+			blocks_dim = many_threads;
+			threads_dim = one_blocks_rect;
+
+			/* Execute our kernel */
+			what_is_my_id_2d_A << <many_threads, one_blocks_rect >> > (gpu_block_x, gpu_block_y,
+				gpu_thread, gpu_calc_thread, gpu_xthread, gpu_ythread, gpu_grid_dimx, gpu_block_dimx,
+				gpu_grid_dimy, gpu_block_dimy);
+		} break;
+
 
 		default: exit(1); break;
 		}
@@ -127,12 +193,14 @@ int main(void)
 		cudaMemcpy(cpu_block_dimy, gpu_block_dimy, ARRAY_SIZE_IN_BYTES, cudaMemcpyDeviceToHost);
 
 		printf("\nKernel %d\n", kernel);
+		printf("Block Dimensions: x= %2d, y=%2d, z=%2d\n", blocks_dim.x, blocks_dim.y, blocks_dim.z);
+		printf("Thread Dimensions: x= %2d, y=%2d, z=%2d\n", threads_dim.x, threads_dim.y, threads_dim.z);
 		/* Iterate through the arrays and print */
 		for (int y = 0; y < ARRAY_SIZE_Y; y++)
 		{
 			for (int x = 0; x < ARRAY_SIZE_X; x++)
 			{
-				printf("CT: %2u BKX: %1u BKY: %1u TID: %2u YTID: %2u XTID: %2u GDX: %1u BDX: %1u GDY: %1u BDY: %1u\n",
+				printf("CT: %3u BKX: %2u BKY: %2u TID: %3u YTID: %2u XTID: %2u GDX: %1u BDX: %1u GDY: %1u BDY: %1u\n",
 					cpu_calc_thread[y][x], cpu_block_x[y][x], cpu_block_y[y][x], cpu_thread[y][x], cpu_ythread[y][x],
 					cpu_xthread[y][x], cpu_grid_dimx[y][x], cpu_block_dimx[y][x], cpu_grid_dimy[y][x], cpu_block_dimy[y][x]);
 
