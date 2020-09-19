@@ -1,7 +1,5 @@
-all: assignment.c assignment.cu
-	nvcc assignment.cu -o assignment_kernels.o
-	gcc -o assignment.exe -lcuda -lcudart assignment.c assignment_kernels.o
-
+all: assignment.c
+	gcc assignment.c -o assignment.exe
 
 block:
 	nvcc blocks.cu -o blocks_default
