@@ -1,3 +1,18 @@
+Assignment: The following will build just the assignment and
+output 'assignment.exe'
+
+'make'
+
+Example runs:
+./assignment.exe
+./assignment.exe 5000000 256
+
+
+# Optional parameters (use --help for documentation)
+./assignment.exe 5000000 256 --verify
+./assignment.exe 24 16 --debug
+
+
 Run
 'make block'
 

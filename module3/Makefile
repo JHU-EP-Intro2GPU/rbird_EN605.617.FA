@@ -1,5 +1,5 @@
-all: assignment.c
-	gcc assignment.c -o assignment.exe
+all: assignment.cu
+	nvcc assignment.cu -std=c++11 -o assignment.exe
 
 block:
 	nvcc blocks.cu -o blocks_default

@@ -66,7 +66,7 @@ std::vector<int> multiplyResults;
 std::vector<int> modulusResults;
 
 bool printDebug = false;
-bool verifyCorrectness = true;
+bool verifyCorrectness = false;
 
 int main(int argc, char* argv[])
 {
@@ -281,7 +281,7 @@ void populateTestData(const int threadCount, const int blocksize)
     multiplyResults.resize(reserveSize);
     modulusResults.resize(reserveSize);
 
-    // Populate the first array: "the first should contain values from 0 – total number of threads"
+    // Populate the first array: "the first should contain values from 0 - total number of threads"
     for (int i = 0; i < threadCount; i++)
         firstSourceArray[i] = i;
 
