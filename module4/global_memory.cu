@@ -13,7 +13,10 @@
 
 static const int WORK_SIZE = 256;
 
-#define NUM_ELEMENTS 4096
+#define INTERLEAVED_ITERATIONS 1000
+// (1 << 12) == 4096
+//#define NUM_ELEMENTS 4096
+#define NUM_ELEMENTS (1 << 13)
 
 typedef struct {
 	unsigned int a;
@@ -42,9 +45,9 @@ __host__ cudaEvent_t get_time(void)
 }
 
 __host__ float add_test_non_interleaved_cpu(
-		NON_INTERLEAVED_T host_dest_ptr,
-		NON_INTERLEAVED_T const host_src_ptr, const unsigned int iter,
-		const unsigned int num_elements) {
+	NON_INTERLEAVED_T host_dest_ptr,
+	NON_INTERLEAVED_T const host_src_ptr, const unsigned int iter,
+	const unsigned int num_elements) {
 
 	cudaEvent_t start_time = get_time();
 
@@ -66,14 +69,14 @@ __host__ float add_test_non_interleaved_cpu(
 	return delta;
 }
 
-__host__ float add_test_interleaved_cpu(INTERLEAVED_T * const host_dest_ptr,
-		const INTERLEAVED_T * const host_src_ptr, const unsigned int iter,
-		const unsigned int num_elements) {
+__host__ float add_test_interleaved_cpu(INTERLEAVED_T* const host_dest_ptr,
+	const INTERLEAVED_T* const host_src_ptr, const unsigned int iter,
+	const unsigned int num_elements) {
 	cudaEvent_t start_time = get_time();
 	for (unsigned int tid = 0; tid < num_elements; tid++) {
-		printf("tid: %u ", tid);
+		//printf("tid: %u ", tid);
 		for (unsigned int i = 0; i < iter; i++) {
-			printf("iteration: %un", iter);
+			//printf("iteration: %u\n", i);
 			host_dest_ptr[tid].a += host_src_ptr[tid].a;
 			host_dest_ptr[tid].b += host_src_ptr[tid].b;
 			host_dest_ptr[tid].c += host_src_ptr[tid].c;
@@ -90,15 +93,15 @@ __host__ float add_test_interleaved_cpu(INTERLEAVED_T * const host_dest_ptr,
 	return delta;
 }
 
-__global__ void add_kernel_interleaved(INTERLEAVED_T * const dest_ptr,
-		const INTERLEAVED_T * const src_ptr, const unsigned int iter,
-		const unsigned int num_elements) {
+__global__ void add_kernel_interleaved(INTERLEAVED_T* const dest_ptr,
+	const INTERLEAVED_T* const src_ptr, const unsigned int iter,
+	const unsigned int num_elements) {
 
 	const unsigned int tid = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-	if(tid < num_elements)
+	if (tid < num_elements)
 	{
-		for(unsigned int i=0; i<iter; i++)
+		for (unsigned int i = 0; i < iter; i++)
 		{
 			dest_ptr[tid].a += src_ptr[tid].a;
 			dest_ptr[tid].b += src_ptr[tid].b;
@@ -109,9 +112,9 @@ __global__ void add_kernel_interleaved(INTERLEAVED_T * const dest_ptr,
 }
 
 __global__ void add_kernel_non_interleaved(
-		NON_INTERLEAVED_T * const dest_ptr,
-		NON_INTERLEAVED_T * const src_ptr, const unsigned int iter,
-		const unsigned int num_elements) {
+	NON_INTERLEAVED_T* const dest_ptr,
+	NON_INTERLEAVED_T* const src_ptr, const unsigned int iter,
+	const unsigned int num_elements) {
 
 	for (unsigned int tid = 0; tid < num_elements; tid++) {
 		for (unsigned int i = 0; i < iter; i++) {
@@ -123,32 +126,32 @@ __global__ void add_kernel_non_interleaved(
 	}
 }
 
-__host__ float add_test_interleaved(INTERLEAVED_T * const host_dest_ptr,
-		const INTERLEAVED_T * const host_src_ptr, const unsigned int iter,
-		const unsigned int num_elements)
+__host__ float add_test_interleaved(INTERLEAVED_T* const host_dest_ptr,
+	const INTERLEAVED_T* const host_src_ptr, const unsigned int iter,
+	const unsigned int num_elements)
 {
 	const unsigned int num_threads = 256;
-	const unsigned int num_blocks = (num_elements + (num_threads-1)) / num_threads;
+	const unsigned int num_blocks = (num_elements + (num_threads - 1)) / num_threads;
 
 	const size_t num_bytes = (sizeof(INTERLEAVED_T) * num_elements);
-	INTERLEAVED_T * device_dest_ptr;
-	INTERLEAVED_T * device_src_ptr;
+	INTERLEAVED_T* device_dest_ptr;
+	INTERLEAVED_T* device_src_ptr;
 
-	cudaMalloc((void **) &device_src_ptr, num_bytes);
-	cudaMalloc((void **) &device_dest_ptr, num_bytes);
+	cudaMalloc((void**)&device_src_ptr, num_bytes);
+	cudaMalloc((void**)&device_dest_ptr, num_bytes);
 
 	cudaEvent_t kernel_start, kernel_stop;
-	cudaEventCreate(&kernel_start,0);
-	cudaEventCreate(&kernel_stop,0);
+	cudaEventCreate(&kernel_start, 0);
+	cudaEventCreate(&kernel_stop, 0);
 
 	cudaStream_t test_stream;
 	cudaStreamCreate(&test_stream);
 
-	cudaMemcpy(device_src_ptr, host_src_ptr, num_bytes,cudaMemcpyHostToDevice);
+	cudaMemcpy(device_src_ptr, host_src_ptr, num_bytes, cudaMemcpyHostToDevice);
 
 	cudaEventRecord(kernel_start, 0);
 
-	add_kernel_interleaved<<<num_blocks,num_threads>>>(device_dest_ptr, device_src_ptr, iter, num_elements);
+	add_kernel_interleaved << <num_blocks, num_threads >> > (device_dest_ptr, device_src_ptr, iter, num_elements);
 
 	cudaEventRecord(kernel_stop, 0);
 
@@ -166,20 +169,63 @@ __host__ float add_test_interleaved(INTERLEAVED_T * const host_dest_ptr,
 	return delta;
 }
 
-__host__ float select_samples_cpu(unsigned int * const sample_data,
-									const unsigned int sample_interval,
-									const unsigned int num_elements,
-									const unsigned int * const src_data)
+__host__ float add_test_non_interleaved(NON_INTERLEAVED_T& const host_dest_ptr,
+	const NON_INTERLEAVED_T& const host_src_ptr, const unsigned int iter,
+	const unsigned int num_elements)
+{
+	const unsigned int num_threads = 256;
+	const unsigned int num_blocks = (num_elements + (num_threads - 1)) / num_threads;
+
+	const size_t num_bytes = sizeof(NON_INTERLEAVED_T);
+	NON_INTERLEAVED_T* device_dest_ptr;
+	NON_INTERLEAVED_T* device_src_ptr;
+
+	cudaMalloc((void**)&device_src_ptr, num_bytes);
+	cudaMalloc((void**)&device_dest_ptr, num_bytes);
+
+	cudaEvent_t kernel_start, kernel_stop;
+	cudaEventCreate(&kernel_start, 0);
+	cudaEventCreate(&kernel_stop, 0);
+
+	cudaStream_t test_stream;
+	cudaStreamCreate(&test_stream);
+
+	cudaMemcpy(device_src_ptr, &host_src_ptr, num_bytes, cudaMemcpyHostToDevice);
+
+	cudaEventRecord(kernel_start, 0);
+
+	add_kernel_non_interleaved << <num_blocks, num_threads >> > (device_dest_ptr, device_src_ptr, iter, num_elements);
+
+	cudaEventRecord(kernel_stop, 0);
+
+	cudaEventSynchronize(kernel_stop);
+
+	float delta = 0.0F;
+	cudaEventElapsedTime(&delta, kernel_start, kernel_stop);
+
+	cudaFree(device_src_ptr);
+	cudaFree(device_dest_ptr);
+	cudaEventDestroy(kernel_start);
+	cudaEventDestroy(kernel_stop);
+	cudaStreamDestroy(test_stream);
+
+	return delta;
+}
+
+__host__ float select_samples_cpu(unsigned int* const sample_data,
+	const unsigned int sample_interval,
+	const unsigned int num_elements,
+	const unsigned int* const src_data)
 {
 	cudaEvent_t kernel_start, kernel_stop;
-	cudaEventCreate(&kernel_start,0);
-	cudaEventCreate(&kernel_stop,0);
+	cudaEventCreate(&kernel_start, 0);
+	cudaEventCreate(&kernel_stop, 0);
 
 	cudaEventRecord(kernel_start, 0);
 
 	unsigned int sample_idx = 0;
 
-	for(unsigned int src_idx=0; src_idx<num_elements;src_idx+=sample_interval)
+	for (unsigned int src_idx = 0; src_idx < num_elements; src_idx += sample_interval)
 	{
 		sample_data[sample_idx] = src_data[src_idx];
 		sample_idx++;
@@ -194,33 +240,33 @@ __host__ float select_samples_cpu(unsigned int * const sample_data,
 	return delta;
 }
 
-__global__ void select_samples_gpu_kernel(unsigned int * const sample_data,
-											const unsigned int sample_interval,
-											const unsigned int * const src_data)
+__global__ void select_samples_gpu_kernel(unsigned int* const sample_data,
+	const unsigned int sample_interval,
+	const unsigned int* const src_data)
 {
 	const unsigned int tid = (blockIdx.x * blockDim.x) + threadIdx.x;
-	sample_data[tid] = src_data[tid*sample_interval];
+	sample_data[tid] = src_data[tid * sample_interval];
 }
 
-__host__ float select_samples_gpu(unsigned int * const sample_data,
-									const unsigned int sample_interval,
-									const unsigned int num_elements,
-									const unsigned int num_samples,
-									const unsigned int * const src_data,
-									const unsigned int num_threads_per_block,
-									const char * prefix)
+__host__ float select_samples_gpu(unsigned int* const sample_data,
+	const unsigned int sample_interval,
+	const unsigned int num_elements,
+	const unsigned int num_samples,
+	const unsigned int* const src_data,
+	const unsigned int num_threads_per_block,
+	const char* prefix)
 {
 	const unsigned int num_blocks = num_samples / num_threads_per_block;
 
 	assert((num_blocks * num_threads_per_block) == num_samples);
 
 	cudaEvent_t kernel_start, kernel_stop;
-	cudaEventCreate(&kernel_start,0);
-	cudaEventCreate(&kernel_stop,0);
+	cudaEventCreate(&kernel_start, 0);
+	cudaEventCreate(&kernel_stop, 0);
 
 	cudaEventRecord(kernel_start, 0);
 
-	select_samples_gpu_kernel<<<num_blocks, num_threads_per_block>>>(sample_data, sample_interval, src_data);
+	select_samples_gpu_kernel << <num_blocks, num_threads_per_block >> > (sample_data, sample_interval, src_data);
 
 	cudaEventRecord(kernel_stop, 0);
 
@@ -232,17 +278,17 @@ __host__ float select_samples_gpu(unsigned int * const sample_data,
 }
 
 // simple comparison function found at http://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
-int compare_func (const void * a, const void * b)
+int compare_func(const void* a, const void* b)
 {
-   return ( *(int*)a - *(int*)b );
+	return (*(int*)a - *(int*)b);
 }
 
-__host__ float sort_samples_cpu(unsigned int * const sample_data,
-									const unsigned int num_samples)
+__host__ float sort_samples_cpu(unsigned int* const sample_data,
+	const unsigned int num_samples)
 {
 	cudaEvent_t kernel_start, kernel_stop;
-	cudaEventCreate(&kernel_start,0);
-	cudaEventCreate(&kernel_stop,0);
+	cudaEventCreate(&kernel_start, 0);
+	cudaEventCreate(&kernel_stop, 0);
 
 	cudaEventRecord(kernel_start, 0);
 
@@ -258,9 +304,9 @@ __host__ float sort_samples_cpu(unsigned int * const sample_data,
 }
 
 
-__host__ __device__ unsigned int bin_search3(const unsigned int * const src_data,
-									const unsigned int search_value,
-									const unsigned int num_elements)
+__host__ __device__ unsigned int bin_search3(const unsigned int* const src_data,
+	const unsigned int search_value,
+	const unsigned int num_elements)
 {
 	// Take the middle of the two sections
 	unsigned int size = (num_elements >> 1);
@@ -270,40 +316,39 @@ __host__ __device__ unsigned int bin_search3(const unsigned int * const src_data
 
 	do
 	{
-		const unsigned int src_idx = (start_idx+size);
+		const unsigned int src_idx = (start_idx + size);
 		const unsigned int test_value = src_data[src_idx];
 
-		if(test_value == search_value)
+		if (test_value == search_value)
 		{
 			found = true;
 		}
-		else if(search_value > test_value)
+		else if (search_value > test_value)
 		{
-			start_idx = (start_idx+size);
+			start_idx = (start_idx + size);
 		}
 
-		if(found == false)
+		if (found == false)
 		{
 			size >>= 1;
 		}
-	}
-	while((found == false) && (size != 0));
+	} while ((found == false) && (size != 0));
 
 	return (start_idx + size);
 }
 
 __host__ float count_bins_cpu(const unsigned int num_samples,
-								const unsigned int num_elements,
-								const unsigned int * const src_data,
-								const unsigned int * const sample_data,
-								unsigned int * const bin_count)
+	const unsigned int num_elements,
+	const unsigned int* const src_data,
+	const unsigned int* const sample_data,
+	unsigned int* const bin_count)
 {
 	cudaEvent_t start_time = get_time();
 
-	for(unsigned int src_idx = 0; src_idx<num_elements;src_idx++)
+	for (unsigned int src_idx = 0; src_idx < num_elements; src_idx++)
 	{
 		const unsigned int data_to_find = src_data[src_idx];
-		const unsigned int idx = bin_search3(sample_data,data_to_find,num_samples);
+		const unsigned int idx = bin_search3(sample_data, data_to_find, num_samples);
 		bin_count[idx]++;
 	}
 
@@ -317,10 +362,10 @@ __host__ float count_bins_cpu(const unsigned int num_samples,
 
 //Single data point atomic add to gmem
 __global__ void count_bins_gpu_kernel5(const unsigned int num_samples,
-										const unsigned int num_elements,
-										const unsigned int * const src_data,
-										const unsigned int * const sample_data,
-										unsigned int * const bin_count)
+	const unsigned int num_elements,
+	const unsigned int* const src_data,
+	const unsigned int* const sample_data,
+	unsigned int* const bin_count)
 {
 	const unsigned int tid = (blockIdx.x * blockDim.x) + threadIdx.x;
 
@@ -328,23 +373,23 @@ __global__ void count_bins_gpu_kernel5(const unsigned int num_samples,
 
 	const unsigned int idx = bin_search3(sample_data, data_to_find, num_samples);
 
-	atomicAdd(&bin_count[idx],1);
+	atomicAdd(&bin_count[idx], 1);
 }
 
 __host__ float count_bins_gpu(const unsigned int num_samples,
-										const unsigned int * const src_data,
-										const unsigned int * const sample_data,
-										unsigned int * const bin_count,
-										const unsigned int num_threads,
-										const char * prefix)
+	const unsigned int* const src_data,
+	const unsigned int* const sample_data,
+	unsigned int* const bin_count,
+	const unsigned int num_threads,
+	const char* prefix)
 {
 
 	const unsigned int num_blocks = num_samples / num_threads;
 
 	cudaEvent_t start_time = get_time();
 
-	count_bins_gpu_kernel5<<<num_blocks,num_threads>>>(num_samples, NUM_ELEMENTS, src_data, sample_data, bin_count);
-//	cuda_error_check(prefix, "Error invoking count_bins_gpu_kernel");
+	count_bins_gpu_kernel5 << <num_blocks, num_threads >> > (num_samples, NUM_ELEMENTS, src_data, sample_data, bin_count);
+	//	cuda_error_check(prefix, "Error invoking count_bins_gpu_kernel");
 
 	cudaEvent_t end_time = get_time();
 	cudaEventSynchronize(end_time);
@@ -355,12 +400,12 @@ __host__ float count_bins_gpu(const unsigned int num_samples,
 }
 
 __host__ float calc_bin_idx_cpu(const unsigned int num_samples,
-									const unsigned int * const bin_count,
-									unsigned int * const dest_bin_idx)
+	const unsigned int* const bin_count,
+	unsigned int* const dest_bin_idx)
 {
 	cudaEvent_t start_time = get_time();
 	unsigned int prefix_sum = 0;
-	for(unsigned int i = 0; i<num_samples;i++)
+	for (unsigned int i = 0; i < num_samples; i++)
 	{
 		dest_bin_idx[i] = prefix_sum;
 		prefix_sum += bin_count[i];
@@ -384,8 +429,8 @@ __host__ __device__ unsigned int bitreverse(unsigned int number) {
 /**
  * CUDA kernel function that reverses the order of bits in each element of the array.
  */
-__global__ void bitreverse(void *data) {
-	unsigned int *idata = (unsigned int*) data;
+__global__ void bitreverse(void* data) {
+	unsigned int* idata = (unsigned int*)data;
 	idata[threadIdx.x] = bitreverse(idata[threadIdx.x]);
 }
 
@@ -393,46 +438,68 @@ void execute_host_functions()
 {
 	INTERLEAVED_T host_dest_ptr[NUM_ELEMENTS];
 	INTERLEAVED_T host_src_ptr[NUM_ELEMENTS];
-	float duration = add_test_interleaved_cpu(host_dest_ptr, host_src_ptr, 4,NUM_ELEMENTS);
-	printf("duration: %fmsn",duration);
+	float duration = add_test_interleaved_cpu(host_dest_ptr, host_src_ptr, INTERLEAVED_ITERATIONS, NUM_ELEMENTS);
+	printf("cpu interleaved duration: %fms\n", duration);
 
+	NON_INTERLEAVED_T non_interleaved_host_dest_ptr;
+	NON_INTERLEAVED_T non_interleaved_host_src_ptr;
+
+	duration = add_test_non_interleaved_cpu(non_interleaved_host_dest_ptr, non_interleaved_host_src_ptr, INTERLEAVED_ITERATIONS, NUM_ELEMENTS);
+	printf("cpu non-interleaved duration: %fms\n", duration);
 }
 
 void execute_gpu_functions()
 {
-	void *d = NULL;
+	void* d = NULL;
 	unsigned int idata[WORK_SIZE], odata[WORK_SIZE];
 	int i;
 	for (i = 0; i < WORK_SIZE; i++)
-		idata[i] = (unsigned int) i;
+		idata[i] = (unsigned int)i;
 
-	cudaMalloc((void** ) &d, sizeof(int) * WORK_SIZE);
-	
-			cudaMemcpy(d, idata, sizeof(int) * WORK_SIZE,
-					cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&d, sizeof(int) * WORK_SIZE);
 
-	bitreverse<<<1, WORK_SIZE, WORK_SIZE * sizeof(int)>>>(d);
+	cudaMemcpy(d, idata, sizeof(int) * WORK_SIZE,
+		cudaMemcpyHostToDevice);
+
+	bitreverse << <1, WORK_SIZE, WORK_SIZE * sizeof(int) >> > (d);
 
 	cudaThreadSynchronize();	// Wait for the GPU launched work to complete
 	cudaGetLastError();
-	
-			cudaMemcpy(odata, d, sizeof(int) * WORK_SIZE,
-					cudaMemcpyDeviceToHost);
+
+	cudaMemcpy(odata, d, sizeof(int) * WORK_SIZE,
+		cudaMemcpyDeviceToHost);
 
 	for (i = 0; i < WORK_SIZE; i++)
 		printf("Input value: %u, device output: %u, host output: %u\n",
-				idata[i], odata[i], bitreverse(idata[i]));
+			idata[i], odata[i], bitreverse(idata[i]));
 
-	cudaFree((void* ) d);
+	cudaFree((void*)d);
 	cudaDeviceReset();
+}
+
+void execute_gpu_interleaved_functions() {
+	INTERLEAVED_T host_dest_ptr[NUM_ELEMENTS];
+	INTERLEAVED_T host_src_ptr[NUM_ELEMENTS];
+	float duration = add_test_interleaved(host_dest_ptr, host_src_ptr, INTERLEAVED_ITERATIONS, NUM_ELEMENTS);
+	printf("gpu interleaved duration: %fms\n", duration);
+
+
+	NON_INTERLEAVED_T non_interleaved_host_dest_ptr;
+	NON_INTERLEAVED_T non_interleaved_host_src_ptr;
+
+	duration = add_test_non_interleaved(non_interleaved_host_dest_ptr, non_interleaved_host_src_ptr, INTERLEAVED_ITERATIONS, NUM_ELEMENTS);
+	printf("gpu non interleaved duration: %fms\n", duration);
 }
 
 /**
  * Host function that prepares data array and passes it to the CUDA kernel.
  */
 int main(void) {
+	printf("Testing num elements: %d\n", NUM_ELEMENTS);
+	printf("Testing iterations: %d\n", INTERLEAVED_ITERATIONS);
 	execute_host_functions();
-	execute_gpu_functions();
+	//execute_gpu_functions();
+	execute_gpu_interleaved_functions();
 
 	return 0;
 }

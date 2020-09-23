@@ -1,0 +1,49 @@
+On personal machine with 16 GB of RAM with GeFource GTX 1080
+
+Byte size: 16777216
+Allocate pinned memory Execution time = 273537 microseconds.
+Array Initialization Execution time = 7068 microseconds.
+memcpy to device Execution time = 5398 microseconds.
+memcpy to host Execution time = 3929 microseconds.
+Verification Execution time = 144744 microseconds.
+Max error: 0.000000
+Free pinned memory Execution time = 2625 microseconds.
+Program Execution Execution time = 444867 microseconds.
+
+Byte size: 16777216
+Allocate pageable memory Execution time = 4627 microseconds.
+Array Initialization Execution time = 7556 microseconds.
+memcpy to device Execution time = 8363 microseconds.
+memcpy to host Execution time = 4920 microseconds.
+Verification Execution time = 143241 microseconds.
+Max error: 0.000000
+Free pageable memory Execution time = 3484 microseconds.
+Program Execution Execution time = 364373 microseconds.
+
+
+
+Byte size: 209715200
+Allocate pinned memory Execution time = 259176 microseconds.
+Array Initialization Execution time = 87854 microseconds.
+memcpy to device Execution time = 65739 microseconds.
+memcpy to host Execution time = 35121 microseconds.
+Verification Execution time = 1775511 microseconds.
+Max error: 0.000000
+Free pinned memory Execution time = 27686 microseconds.
+Program Execution Execution time = 2272301 microseconds.
+
+
+Byte size: 209715200
+Allocate pageable memory Execution time = 67787 microseconds.
+Array Initialization Execution time = 87404 microseconds.
+memcpy to device Execution time = 97581 microseconds.
+memcpy to host Execution time = 53033 microseconds.
+Verification Execution time = 1806127 microseconds.
+Max error: 0.000000
+Free pageable memory Execution time = 42560 microseconds.
+Program Execution Execution time = 2415569 microseconds.
+
+
+
+
+

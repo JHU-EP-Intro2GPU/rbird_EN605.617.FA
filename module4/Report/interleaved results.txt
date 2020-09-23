@@ -1,0 +1,51 @@
+Testing num elements: 4096
+cpu interleaved duration: 0.003072ms
+cpu non-interleaved duration: 0.002048ms
+gpu interleaved duration: 0.019456ms
+gpu non interleaved duration: 46.087170ms
+
+
+Testing num elements: 8192
+cpu interleaved duration: 0.002048ms
+cpu non-interleaved duration: 0.003072ms
+gpu interleaved duration: 0.019456ms
+gpu non interleaved duration: 92.867966ms
+
+
+// Any higher got a stack overflow
+
+
+Testing num elements: 8192
+Testing iterations: 4
+cpu interleaved duration: 0.002048ms
+cpu non-interleaved duration: 0.003072ms
+gpu interleaved duration: 0.019456ms
+gpu non interleaved duration: 95.032028ms
+
+
+Testing num elements: 8192
+Testing iterations: 10
+cpu interleaved duration: 0.003072ms
+cpu non-interleaved duration: 0.002048ms
+gpu interleaved duration: 0.036864ms
+gpu non interleaved duration: 214.307816ms
+
+
+
+Testing num elements: 8192
+Testing iterations: 20
+cpu interleaved duration: 0.003072ms
+cpu non-interleaved duration: 0.002048ms
+gpu interleaved duration: 0.055040ms
+gpu non interleaved duration: 379.066284ms
+
+
+
+Testing num elements: 8192
+Testing iterations: 1000
+cpu interleaved duration: 0.002048ms
+cpu non-interleaved duration: 0.002048ms
+gpu interleaved duration: 2.883968ms
+gpu non interleaved duration: 18656.562500ms
+
+
