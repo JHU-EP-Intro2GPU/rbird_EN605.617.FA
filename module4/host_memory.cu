@@ -24,7 +24,7 @@ float randFloat()
 
 class TimeCodeBlock
 {
-    std::chrono::steady_clock::time_point start;
+    std::chrono::system_clock::time_point start;
     const char* name;
 public:
     TimeCodeBlock(const char* blockName) : name(blockName) {
@@ -43,7 +43,8 @@ bool usePinnedMemory = true;
 
 int main(void)
 {
-    int N = (1 << 20) * 50;
+    //int N = (1 << 20) * 50;  // personal computer test
+    int N = 1000;
     float* x, * y, * d_x, * d_y;
 
     printf("Byte size: %d\n", N * sizeof(float));
