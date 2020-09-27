@@ -41,6 +41,54 @@ __global__ void modulusKernel(int* c, const int* a, const int* b)
     c[i] = a[i] % b[i];
 }
 
+
+__host__ __device__ char convert(const char c, const int offset) {
+    int minChar, maxChar;
+    if ('a' <= c && c <= 'z') {
+        minChar = 'a';
+        maxChar = 'z';
+    }
+    else if ('A' <= c && c <= 'Z') {
+        minChar = 'A';
+        maxChar = 'Z';
+    }
+    else {
+        // assume space character
+        minChar = ' ';
+        maxChar = ' ';
+    }
+
+    // remap the new offest to be within the min/max boundary.
+    // Do this by using the mod operator. Values that are negative
+    // need to be positive.
+
+    // Example: 'b' with offset -3 -> 'y'
+    //     characterOffest = 'b' - 'a' = 98 - 97 = 1
+    //     characterOffest = 1 + (-3) = -2
+    //     increment = -2 + 26 = 24
+    //     modulus = 24 % 26 = 24
+    //     newCharacter = 'a' + 24 = 97 + 24 = 121 = 'y'
+
+    // calculate distance from lowest ascii
+    int characterOffest = c - minChar;
+    characterOffest += offset;
+
+    int alphabetCount = (maxChar - minChar) + 1;
+
+    // Use the mod operator to keep the offset within the min/max character range
+    characterOffest = (characterOffest + alphabetCount) % alphabetCount;
+
+    return (char)((int)minChar) + characterOffest;
+}
+
+__global__ void caesarCypher(char* output, const char* input, int bufferSize, const int offset)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < bufferSize) {
+        output[i] = convert(input[i], offset);
+    }
+}
+
 #pragma endregion
 
 enum KernalToRun {
@@ -56,7 +104,16 @@ HostMemory<int> multiplyResults;
 HostMemory<int> modulusResults;
 
 bool printDebug = false;
-bool verifyCorrectness = true;
+bool verifyCorrectness = false;
+
+bool usePinnedMemory = false;
+
+const char* messageToDecode = "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+int cipherOffset = -3;
+
+// run the previous Module 3 code on pinned/pageable memory
+void performMathProgram(int totalThreadCount, int blockSize);
+void performCaesarCipher(const char* value, int cipherOffset, int totalThreadCount, int blockSize);
 
 int main(int argc, char* argv[])
 {
@@ -71,9 +128,14 @@ int main(int argc, char* argv[])
             printf("Optional Arguments:\n");
             printf("--help, -h: Show this message and exit\n\n");
             printf("--blocksize [block_size]: set the block size to use on the cuda kernels. Default to %d\n", blockSize);
+            printf("--pinned: use pinned host memory for data transfer\n");
+            printf("--pageable: use pageable host memory for data transfer\n");
             printf("--threads [thread_count]: set the thread count (and test array size) to use on the cuda kernels. Default to %d\n", totalThreadCount);
             printf("--debug: print out the data to determine test input and output\n");
             printf("--verify: verify that the results from the gpu are the expected values\n");
+            printf("\nCipher arguments:\n");
+            printf("--message [message]: the message to run the cipher on. Capital and lower case ascii characters only.");
+            printf("--offset [offset]: the offset to use for the cipher.");
             return 0;
         }
         else if (strcmp(arg, "--blocksize") == 0) {
@@ -90,13 +152,52 @@ int main(int argc, char* argv[])
         else if (strcmp(arg, "--verify") == 0) {
             verifyCorrectness = true;
         }
+        else if (strcmp(arg, "--pinned") == 0) {
+            usePinnedMemory = true;
+        }
+        else if (strcmp(arg, "--pageable") == 0) {
+            usePinnedMemory = false;
+        }
+        else if (strcmp(arg, "--message") == 0) {
+            i++;
+            messageToDecode = argv[i];
+        }
+        else if (strcmp(arg, "--offset") == 0) {
+            i++;
+            cipherOffset = atoi(argv[i]);
+        }
         else if (i == 1) {
             totalThreadCount = atoi(arg);
         }
         else if (i == 2) {
             blockSize = atoi(arg);
         }
+    }
 
+    performMathProgram(totalThreadCount, blockSize);
+
+    // debug
+//    for (int i = 0; i <= 26; i++) {
+//        performCaesarCipher("abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ", i);
+//    }
+
+    performCaesarCipher(messageToDecode, cipherOffset, totalThreadCount, blockSize);
+
+    // cudaDeviceReset must be called before exiting in order for profiling and
+    // tracing tools such as Nsight and Visual Profiler to show complete traces.
+    gpuErrchk(cudaDeviceReset());
+
+    return 0;
+}
+
+void performMathProgram(int totalThreadCount, int blockSize) {
+    printf("Using %d total threads with %d threads per block\n", totalThreadCount, blockSize);
+
+    if (usePinnedMemory) {
+        printf("Using pinned host memory for program execution.\n");
+    }
+    else {
+        printf("Using pageable host memory for program execution.\n");
     }
 
     populateTestData(totalThreadCount, blockSize);
@@ -127,18 +228,83 @@ int main(int argc, char* argv[])
     if (verifyCorrectness) {
         runVerification();
     }
-
-    // cudaDeviceReset must be called before exiting in order for profiling and
-    // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    gpuErrchk(cudaDeviceReset());
-
-    return 0;
 }
 
-int* createDeviceBuffer(size_t bytes) {
-    int* devicePtr = nullptr;
-    gpuErrchk(cudaMalloc((void**)&devicePtr, bytes));
-    return devicePtr;
+
+void performCaesarCipher(const char* value, int cipherOffset, int totalThreadCount, int blockSize) {
+    size_t len = strlen(value);
+    size_t totalBytes = len * sizeof(char);
+
+    int totalBlocks = (totalThreadCount + blockSize - 1) / blockSize;
+
+    // Debug
+//    for (size_t i = 0; i < len; i++) {
+//        printf("%c", convert(value[i], cipherOffset));
+//    }
+
+//    printf("\n");
+
+    HostMemory<char> encodedCipherText;
+    HostMemory<char> decodedCipherText;
+
+    {
+        TimeCodeBlock cipherTextHostAllocation("CipherText Host Allocation");
+        encodedCipherText.allocate(len, usePinnedMemory);
+        decodedCipherText.allocate(len, usePinnedMemory);
+    }
+
+    DeviceMemory<char> device_SourceText(len);
+    DeviceMemory<char> device_EncodedText(len);
+    DeviceMemory<char> device_DecodedText(len);
+
+    // Send cipher to device
+    {
+        TimeCodeBlock dataTransferToDevice("CipherText Data Transfer from host to device");
+        gpuErrchk(cudaMemcpy(device_SourceText.ptr(), value, totalBytes, cudaMemcpyHostToDevice));
+    }
+
+    // Encode and decode
+    {
+        TimeCodeBlock cipherTextHostAllocation("CipherText encode");
+
+        // TODO: Debug!
+        caesarCypher << <totalBlocks, blockSize >> > (device_EncodedText.ptr(), device_SourceText.ptr(), len, cipherOffset);
+
+        gpuErrchk(cudaGetLastError());
+        gpuErrchk(cudaDeviceSynchronize());
+    }
+
+    {
+        TimeCodeBlock cipherTextHostAllocation("CipherText decode");
+
+        // run with negative offset to decode
+        // TODO: Debug!
+        caesarCypher << <totalBlocks, blockSize >> > (device_DecodedText.ptr(), device_EncodedText.ptr(), len, -cipherOffset);
+
+        gpuErrchk(cudaGetLastError());
+        gpuErrchk(cudaDeviceSynchronize());
+    }
+
+    // Read data back from device
+    {
+        TimeCodeBlock dataTransferToDevice("CipherText Data Transfer from device to host");
+        gpuErrchk(cudaMemcpy(encodedCipherText.ptr(), device_EncodedText.ptr(), totalBytes, cudaMemcpyDeviceToHost));
+        gpuErrchk(cudaMemcpy(decodedCipherText.ptr(), device_DecodedText.ptr(), totalBytes, cudaMemcpyDeviceToHost));
+    }
+
+    // print values:
+    printf("Encoded:\n");
+    for (size_t i = 0; i < len; i++) {
+        // memory may not have null terminator. Print one character at a time
+        printf("%c", encodedCipherText.ptr()[i]);
+    }
+
+    printf("\n\nDecoded:\n");
+    for (size_t i = 0; i < len; i++) {
+        // memory may not have null terminator. Print one character at a time
+        printf("%c", decodedCipherText.ptr()[i]);
+    }
+
 }
 
 // Use helper function tomake performCalculations more readable
@@ -153,6 +319,7 @@ void performCalculations(int blocksize)
     const int numBlocks = bufferCount / blocksize;
 
     // input sources
+    TimeCodeBlock* deviceAllocation = new TimeCodeBlock("Device Allocation");
     DeviceMemory<int> dev_firstSource(bufferCount);
     DeviceMemory<int> dev_secondSource(bufferCount);
 
@@ -162,9 +329,15 @@ void performCalculations(int blocksize)
     DeviceMemory<int> dev_multiplyResults(bufferCount);
     DeviceMemory<int> dev_modulusResults(bufferCount);
 
+    delete deviceAllocation;
+    deviceAllocation = nullptr;
+
     // Copy input vectors from host memory to GPU buffers.
-    gpuErrchk(cudaMemcpy(dev_firstSource.ptr(), firstSourceArray.ptr(), totalBytes, cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(dev_secondSource.ptr(), secondSourceArray.ptr(), totalBytes, cudaMemcpyHostToDevice));
+    {
+        TimeCodeBlock dataTransferToDevice("Data Transfer from host to device");
+        gpuErrchk(cudaMemcpy(dev_firstSource.ptr(), firstSourceArray.ptr(), totalBytes, cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(dev_secondSource.ptr(), secondSourceArray.ptr(), totalBytes, cudaMemcpyHostToDevice));
+    }
 
     // Wait for kernels to finish so that we can properly time each kernel run
     gpuErrchk(cudaDeviceSynchronize());
@@ -184,10 +357,13 @@ void performCalculations(int blocksize)
 
 
     // Copy output vectors from GPU buffer to host memory.
-    gpuErrchk(cudaMemcpy(addResults.ptr(), dev_addResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaMemcpy(subtractResults.ptr(), dev_subtractResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaMemcpy(multiplyResults.ptr(), dev_multiplyResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaMemcpy(modulusResults.ptr(), dev_modulusResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
+    {
+        TimeCodeBlock dataTransferToDevice("Data Transfer from device to host");
+        gpuErrchk(cudaMemcpy(addResults.ptr(), dev_addResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
+        gpuErrchk(cudaMemcpy(subtractResults.ptr(), dev_subtractResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
+        gpuErrchk(cudaMemcpy(multiplyResults.ptr(), dev_multiplyResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
+        gpuErrchk(cudaMemcpy(modulusResults.ptr(), dev_modulusResults.ptr(), totalBytes, cudaMemcpyDeviceToHost));
+    }
 }
 
 void testKernel(KernalToRun runKernel, const int numBlocks, const int blocksize, int* device_destPtr, int* device_Source1, int* device_Source2) {
@@ -233,16 +409,13 @@ void populateTestData(const int threadCount, const int blocksize)
 
     {
         TimeCodeBlock hostAllocation("Allocate Host Memory");
-        firstSourceArray.allocate(reserveSize);
-        secondSourceArray.allocate(reserveSize);
-    }
+        firstSourceArray.allocate(reserveSize, usePinnedMemory);
+        secondSourceArray.allocate(reserveSize, usePinnedMemory);
 
-    {
-        TimeCodeBlock deviceAllocation("Device Allocation");
-        addResults.allocate(reserveSize);
-        subtractResults.allocate(reserveSize);
-        multiplyResults.allocate(reserveSize);
-        modulusResults.allocate(reserveSize);
+        addResults.allocate(reserveSize, usePinnedMemory);
+        subtractResults.allocate(reserveSize, usePinnedMemory);
+        multiplyResults.allocate(reserveSize, usePinnedMemory);
+        modulusResults.allocate(reserveSize, usePinnedMemory);
     }
 
     {

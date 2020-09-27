@@ -7,10 +7,12 @@
 #include <stdio.h>
 #include <cstdlib>
 #include <iostream>
+#include <chrono>
 
 
 // Helper function and #DEFINE to help with error checking (found from stackoverflow)
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+#define gpuErrchkNoAbort(ans, abrt) { gpuAssert((ans), __FILE__, __LINE__, false); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 {
     if (code != cudaSuccess)
@@ -36,21 +38,44 @@ cudaError_t checkCuda(cudaError_t result)
     return result;
 }
 
+
 class TimeCodeBlock
+{
+#ifdef _WIN32
+    std::chrono::steady_clock::time_point start;
+#elif
+    std::chrono::system_clock::time_point start;
+#endif // _WIN32
+
+    const char* name;
+public:
+    TimeCodeBlock(const char* blockName) : name(blockName) {
+        start = std::chrono::high_resolution_clock::now();
+    }
+
+    ~TimeCodeBlock() {
+        auto finish = std::chrono::high_resolution_clock::now();
+
+        std::chrono::microseconds timeDiff = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+        std::cout << name << " Execution time = " << timeDiff.count() << " microseconds." << std::endl;
+    }
+};
+
+class TimeCodeBlockCuda
 {
     // events for timing
     cudaEvent_t startEvent, stopEvent;
 
     const char* name;
 public:
-    TimeCodeBlock(const char* blockName) : name(blockName) {
+    TimeCodeBlockCuda(const char* blockName) : name(blockName) {
         gpuErrchk(cudaEventCreate(&startEvent));
         gpuErrchk(cudaEventCreate(&stopEvent));
 
         gpuErrchk(cudaEventRecord(startEvent, 0));
     }
 
-    ~TimeCodeBlock() {
+    ~TimeCodeBlockCuda() {
         gpuErrchk(cudaEventRecord(stopEvent, 0));
         gpuErrchk(cudaEventSynchronize(stopEvent));
 
@@ -74,7 +99,7 @@ class HostMemory
 
 public:
 
-    HostMemory() : pinnedMemory(false), _size(-1) {
+    HostMemory() : pinnedMemory(false), host_ptr(nullptr), _size(-1) {
     }
 
     void allocate(size_t bufferCount, bool _pinnedMemory = false) {
@@ -89,13 +114,22 @@ public:
         }
     }
 
+    void deallocate() {
+        if (host_ptr) {
+            if (pinnedMemory) {
+                // report errors, but do not exit the program. Not sure of the error here
+                gpuErrchkNoAbort(cudaFreeHost(host_ptr));
+            }
+            else {
+                free(host_ptr);
+            }
+
+            host_ptr = nullptr;
+        }
+    }
+
     ~HostMemory() {
-        if (pinnedMemory) {
-            gpuErrchk(cudaFreeHost(host_ptr));
-        }
-        else {
-            free(host_ptr);
-        }
+        deallocate();
     }
 
     inline T* ptr() const { return host_ptr; }
