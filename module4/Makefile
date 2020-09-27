@@ -1,5 +1,5 @@
 all: assignment.c
-	gcc assignment.c -o assignment.exe
+	nvcc assignment.c -std=c++11 -o assignment.exe
 
 host: host_memory.cu
 	nvcc host_memory.cu -std=c++11 -L /usr/local/cuda/lib -lcudart -o host_memory
