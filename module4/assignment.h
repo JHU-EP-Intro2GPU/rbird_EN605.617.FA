@@ -12,7 +12,7 @@
 
 // Helper function and #DEFINE to help with error checking (found from stackoverflow)
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-#define gpuErrchkNoAbort(ans, abrt) { gpuAssert((ans), __FILE__, __LINE__, false); }
+#define gpuErrchkNoAbort(ans) { gpuAssert((ans), __FILE__, __LINE__, false); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 {
     if (code != cudaSuccess)
@@ -43,7 +43,7 @@ class TimeCodeBlock
 {
 #ifdef _WIN32
     std::chrono::steady_clock::time_point start;
-#elif
+#else
     std::chrono::system_clock::time_point start;
 #endif // _WIN32
 

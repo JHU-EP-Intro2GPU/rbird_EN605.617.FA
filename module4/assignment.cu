@@ -113,7 +113,7 @@ int cipherOffset = -3;
 
 // run the previous Module 3 code on pinned/pageable memory
 void performMathProgram(int totalThreadCount, int blockSize);
-void performCaesarCipher(const char* value, int cipherOffset, int totalThreadCount, int blockSize);
+void performCaesarCipher(const char* value, int cipherOffset, int blockSize);
 
 int main(int argc, char* argv[])
 {
@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 //        performCaesarCipher("abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ", i);
 //    }
 
-    performCaesarCipher(messageToDecode, cipherOffset, totalThreadCount, blockSize);
+    performCaesarCipher(messageToDecode, cipherOffset, blockSize);
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
@@ -231,10 +231,11 @@ void performMathProgram(int totalThreadCount, int blockSize) {
 }
 
 
-void performCaesarCipher(const char* value, int cipherOffset, int totalThreadCount, int blockSize) {
+void performCaesarCipher(const char* value, int cipherOffset, int blockSize) {
     size_t len = strlen(value);
     size_t totalBytes = len * sizeof(char);
 
+    int totalThreadCount = len;
     int totalBlocks = (totalThreadCount + blockSize - 1) / blockSize;
 
     // Debug
