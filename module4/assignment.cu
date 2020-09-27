@@ -183,6 +183,17 @@ int main(int argc, char* argv[])
 
     performCaesarCipher(messageToDecode, cipherOffset, blockSize);
 
+
+    // Deallocate resources before calling device reset (causes errors during destruction of static objects)
+    firstSourceArray.deallocate();
+    secondSourceArray.deallocate();
+
+    addResults.deallocate();
+    subtractResults.deallocate();
+    multiplyResults.deallocate();
+    modulusResults.deallocate();
+
+
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
     gpuErrchk(cudaDeviceReset());
@@ -305,6 +316,7 @@ void performCaesarCipher(const char* value, int cipherOffset, int blockSize) {
         // memory may not have null terminator. Print one character at a time
         printf("%c", decodedCipherText.ptr()[i]);
     }
+    printf("\n");
 
 }
 
