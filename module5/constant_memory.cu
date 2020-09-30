@@ -56,102 +56,12 @@ __global__ void const_test_gpu_const(unsigned int * const data, const unsigned i
 	}
 }
 
-__host__ void gpu_kernel(void) {
-	const unsigned int num_elements = (128 * 1024);
-	const unsigned int num_threads = 256;
-	const unsigned int num_blocks = (num_elements + (num_threads - 1)) / num_threads;
-	const unsigned int num_bytes = num_elements * sizeof(unsigned int);
-	int max_device_num;
-	const int max_runs = 6;
-
-	cudaGetDeviceCount(&max_device_num);
-
-	for (int device_num = 0; device_num < max_device_num; device_num++) {
-		cudaSetDevice(device_num);
-
-		for (int num_test = 0; num_test < max_runs; num_test++) {
-			unsigned int * data_gpu;
-			cudaEvent_t kernel_start1, kernel_stop1;
-			cudaEvent_t kernel_start2, kernel_stop2;
-			float delta_time1 = 0.0f, delta_time2 = 0.0F;
-			struct cudaDeviceProp device_prop;
-			char device_prefix[261];
-
-			cudaMalloc(&data_gpu, num_bytes);
-			cudaEventCreate(&kernel_start1);
-			cudaEventCreate(&kernel_start2);
-			
-					cudaEventCreateWithFlags(&kernel_stop1,
-							cudaEventBlockingSync);
-			
-					cudaEventCreateWithFlags(&kernel_stop2,
-							cudaEventBlockingSync);
-
-			cudaGetDeviceProperties(&device_prop, device_num);
-			sprintf(device_prefix, "ID: %d %s:", device_num, device_prop.name);
-
-			const_test_gpu_literal<<<num_blocks, num_threads>>>(data_gpu,
-					num_elements);
-
-//			cuda_error_check("Error ",
-//					" returned from literal startup  kernel!");
-
-			cudaEventRecord(kernel_start1, 0);
-			const_test_gpu_literal<<<num_blocks, num_threads>>>(data_gpu,
-					num_elements);
-
-//			cuda_error_check("Error ",
-//					" returned from literal runtime  kernel!");
-
-			cudaEventRecord(kernel_stop1, 0);
-			cudaEventSynchronize(kernel_stop1);
-			
-					cudaEventElapsedTime(&delta_time1, kernel_start1,
-							kernel_stop1);
-
-			const_test_gpu_const<<<num_blocks, num_threads>>>(data_gpu,
-					num_elements);
-
-//			cuda_error_check("Error ",
-//					" returned from literal startup  kernel!");
-
-			cudaEventRecord(kernel_stop2, 0);
-			cudaEventSynchronize(kernel_stop2);
-			
-					cudaEventElapsedTime(&delta_time2, kernel_start2,
-							kernel_stop2);
-
-			if (delta_time1 > delta_time2) {
-				printf(
-						"\n%sConstant version is faster by: %.2fms (Const=%.2fms vs. Literal=%.2fms)",
-						device_prefix, delta_time1 - delta_time2, delta_time1,
-						delta_time2);
-			} else {
-				printf(
-						"\n%sLiteral version is faster by: %.2fms (Const=%.2fms vs. Literal=%.2fms)",
-						device_prefix, delta_time2 - delta_time1, delta_time1,
-						delta_time2);
-			}
-
-			cudaEventDestroy(kernel_start1);
-			cudaEventDestroy(kernel_start2);
-			cudaEventDestroy(kernel_stop1);
-			cudaEventDestroy(kernel_stop2);
-			cudaFree(data_gpu);
-		}
-
-		cudaDeviceReset();
-		printf("\n");
-	}
-//	wait_exit();
-}
-
 __device__  static unsigned int data_01 = 0x55555555;
 __device__  static unsigned int data_02 = 0x77777777;
 __device__  static unsigned int data_03 = 0x33333333;
 __device__  static unsigned int data_04 = 0x11111111;
 
-__global__ void const_test_gpu_gmem(unsigned int * const data, const unsigned int num_elements) {
+__global__ void const_test_gpu_gmem(unsigned int* const data, const unsigned int num_elements) {
 	const unsigned int tid = (blockIdx.x * blockDim.x) + threadIdx.x;
 
 	if (tid < num_elements) {
@@ -166,6 +76,118 @@ __global__ void const_test_gpu_gmem(unsigned int * const data, const unsigned in
 
 		data[tid] = d;
 	}
+}
+
+__host__ void gpu_kernel(void) {
+	const unsigned int num_elements = (20 * 128 * 1024);
+	const unsigned int num_threads = 256;
+	const unsigned int num_blocks = (num_elements + (num_threads - 1)) / num_threads;
+	const unsigned int num_bytes = num_elements * sizeof(unsigned int);
+	int max_device_num;
+	const int max_runs = 6;
+
+	printf("Testing: %d elements, %d blocks, %d iterations\n", num_elements, num_blocks, KERNEL_LOOP);
+
+	cudaGetDeviceCount(&max_device_num);
+
+	for (int device_num = 0; device_num < max_device_num; device_num++) {
+		cudaSetDevice(device_num);
+
+		for (int num_test = 0; num_test < max_runs; num_test++) {
+			unsigned int * data_gpu;
+			cudaEvent_t kernel_start1, kernel_stop1;
+			cudaEvent_t kernel_start2, kernel_stop2;
+			cudaEvent_t kernel_start3, kernel_stop3;
+			float delta_time1 = 0.0f, delta_time2 = 0.0F, delta_time3 = 0.0F;
+			struct cudaDeviceProp device_prop;
+			char device_prefix[261];
+
+			cudaMalloc(&data_gpu, num_bytes);
+			cudaEventCreate(&kernel_start1);
+			cudaEventCreate(&kernel_start2);
+			cudaEventCreate(&kernel_start3);
+
+			cudaEventCreateWithFlags(&kernel_stop1,
+					cudaEventBlockingSync);
+			
+			cudaEventCreateWithFlags(&kernel_stop2,
+					cudaEventBlockingSync);
+
+			cudaEventCreateWithFlags(&kernel_stop3,
+				cudaEventBlockingSync);
+
+			cudaGetDeviceProperties(&device_prop, device_num);
+			sprintf(device_prefix, "ID: %d %s:", device_num, device_prop.name);
+
+//			cuda_error_check("Error ",
+//					" returned from literal startup  kernel!");
+
+			cudaEventRecord(kernel_start1, 0);
+			const_test_gpu_literal<<<num_blocks, num_threads>>>(data_gpu,
+					num_elements);
+
+//			cuda_error_check("Error ",
+//					" returned from literal runtime  kernel!");
+
+			cudaEventRecord(kernel_stop1, 0);
+			cudaEventSynchronize(kernel_stop1);
+			
+			cudaEventElapsedTime(&delta_time1, kernel_start1,
+					kernel_stop1);
+
+			cudaEventRecord(kernel_start2, 0);
+
+			const_test_gpu_const<<<num_blocks, num_threads>>>(data_gpu,
+					num_elements);
+
+//			cuda_error_check("Error ",
+//					" returned from literal startup  kernel!");
+
+			cudaEventRecord(kernel_stop2, 0);
+			cudaEventSynchronize(kernel_stop2);
+			
+			cudaEventElapsedTime(&delta_time2, kernel_start2,
+					kernel_stop2);
+
+
+			cudaEventRecord(kernel_start3, 0);
+
+			const_test_gpu_gmem << < num_blocks, num_threads >> > (data_gpu, num_elements);
+
+			cudaEventRecord(kernel_stop3, 0);
+			cudaEventSynchronize(kernel_stop3);
+
+			cudaEventElapsedTime(&delta_time3, kernel_start3,
+				kernel_stop3);
+
+
+			if (delta_time1 > delta_time2) {
+				printf(
+						"\n%sConstant version is faster by: %.2fms (Const=%.2fms vs. Literal=%.2fms. Global Memory=%.2fms)",
+						device_prefix, delta_time1 - delta_time2, delta_time1,
+						delta_time2, delta_time3);
+			} else {
+				printf(
+						"\n%sLiteral version is faster by: %.2fms (Const=%.2fms vs. Literal=%.2fms. Global Memory=%.2fms)",
+						device_prefix, delta_time2 - delta_time1, delta_time1,
+						delta_time2, delta_time3);
+			}
+
+
+
+			cudaEventDestroy(kernel_start1);
+			cudaEventDestroy(kernel_start2);
+			cudaEventDestroy(kernel_start3);
+			cudaEventDestroy(kernel_stop1);
+			cudaEventDestroy(kernel_stop2);
+			cudaEventDestroy(kernel_stop3);
+			cudaFree(data_gpu);
+		}
+
+		cudaDeviceReset();
+		printf("\n");
+	}
+//	wait_exit();
 }
 
 void execute_host_functions()
@@ -208,8 +230,10 @@ void execute_gpu_functions()
  */
 int main(void) {
 
-	execute_host_functions();
-	execute_gpu_functions();
+	//execute_host_functions();
+	//execute_gpu_functions();
+
+	gpu_kernel();
 
 	return 0;
 }
