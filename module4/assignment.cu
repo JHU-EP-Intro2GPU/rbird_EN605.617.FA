@@ -181,6 +181,7 @@ int main(int argc, char* argv[])
 //        performCaesarCipher("abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ", i);
 //    }
 
+    printf("\nBegin Caesar Cipher:\n");
     performCaesarCipher(messageToDecode, cipherOffset, blockSize);
 
 
