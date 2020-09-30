@@ -31,10 +31,10 @@ __global__ void const_test_gpu_gmem(u32 * const data, const u32 num_elements)
 
 		for(int i=0;i<KERNEL_LOOP;i++)
 		{
-			d ^= gmem_data_gpu[0];
-			d |= gmem_data_gpu[1];
-			d &= gmem_data_gpu[2];
-			d |= gmem_data_gpu[3];
+			d ^= gmem_data_gpu[(i * KERNEL_LOOP + 0) % KERNEL_LOOP];
+			d |= gmem_data_gpu[(i * KERNEL_LOOP + 1) % KERNEL_LOOP];
+			d &= gmem_data_gpu[(i * KERNEL_LOOP + 2) % KERNEL_LOOP];
+			d |= gmem_data_gpu[(i * KERNEL_LOOP + 3) % KERNEL_LOOP];
 		}
 
 		data[tid] = d;
@@ -51,10 +51,10 @@ __global__ void const_test_gpu_const(u32 * const data, const u32 num_elements)
 
 		for(int i=0;i<KERNEL_LOOP;i++)
 		{
-			d ^= const_data_gpu[0];
-			d |= const_data_gpu[1];
-			d &= const_data_gpu[2];
-			d |= const_data_gpu[3];
+			d ^= const_data_gpu[(i * KERNEL_LOOP + 0) % KERNEL_LOOP];
+			d |= const_data_gpu[(i * KERNEL_LOOP + 1) % KERNEL_LOOP];
+			d &= const_data_gpu[(i * KERNEL_LOOP + 2) % KERNEL_LOOP];
+			d |= const_data_gpu[(i * KERNEL_LOOP + 3) % KERNEL_LOOP];
 		}
 
 		data[tid] = d;
@@ -90,12 +90,14 @@ __host__ void generate_rand_data(u32 * host_data_ptr)
 
 __host__ void gpu_kernel(void)
 {
-	const u32 num_elements = (128*1024);
+	const u32 num_elements = (10 * 128*1024);
 	const u32 num_threads = 256;
 	const u32 num_blocks = (num_elements + (num_threads-1))/num_threads;
 	const u32 num_bytes = num_elements * sizeof(u32);
 	int max_device_num;
 	const int max_runs = 6;
+
+	printf("Testing: %d elements, %d blocks, %d iterations\n", num_elements, num_blocks, KERNEL_LOOP);
 
 	cudaGetDeviceCount(&max_device_num);
 
@@ -229,8 +231,10 @@ void execute_gpu_functions()
  * Host function that prepares data array and passes it to the CUDA kernel.
  */
 int main(void) {
-	execute_host_functions();
-	execute_gpu_functions();
+	//execute_host_functions();
+	//execute_gpu_functions();
+
+	gpu_kernel();
 
 	return 0;
 }
