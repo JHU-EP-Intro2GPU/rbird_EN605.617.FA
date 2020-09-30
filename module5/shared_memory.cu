@@ -505,7 +505,8 @@ void execute_gpu_functions()
 	unsigned int idata[NUM_ELEMENTS], odata[NUM_ELEMENTS];
 	int i;
 	for (i = 0; i < NUM_ELEMENTS; i++){
-		idata[i] = (unsigned int) i;
+//		idata[i] = (unsigned int) i;
+		idata[i] = (unsigned int)NUM_ELEMENTS - i;
 	}
 
 	cudaMalloc((void** ) &d, sizeof(int) * NUM_ELEMENTS);
