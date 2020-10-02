@@ -18,6 +18,7 @@
 //const int blockSize = 10;
 
 const int blockSize = 256;
+// vocareum tests at blockSize * 50000
 const int arraySize = blockSize * 250000;
 
 constexpr auto ITERATIONS = 1;
