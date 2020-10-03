@@ -17,15 +17,20 @@
 //#define arraySize 10
 //#define blockSize 10
 
-#define arraySize 15000
-#define blockSize 200
+//#define arraySize 15000
+//#define blockSize 500
 
 
 //#define blockSize 256
 // vocareum tests at blockSize * 50000
 //#define arraySize (blockSize * 250000)
 
-constexpr auto ITERATIONS = 1;
+
+#define blockSize 256
+#define arraySize (blockSize * 25000)
+
+
+#define ITERATIONS 5000
 
 
 const int numBlocks = arraySize / blockSize;
@@ -92,9 +97,13 @@ __device__ void kernelMathFunctionGlobalMemory(const int constant_value)
 
     int upperIndex = (i + 1) % arraySize;
 
-    int value = gmem_input[lowerIndex] + gmem_input[i];
-    value *= gmem_input[upperIndex];
-    value >>= constant_value;
+    // run multiple iterations simply to stress the memory. Calculation is the same as 1 iteration
+    int value = 0;
+    for (int count = 0; count < ITERATIONS; count++) {
+        value = gmem_input[lowerIndex] + gmem_input[i];
+        value *= gmem_input[upperIndex];
+        value >>= constant_value;
+    }
 
     gmem_output[i] = value;
 }
@@ -137,9 +146,13 @@ __device__ void kernelMathFunctionSharedMemory(int* shared_memory, const int con
 
     __syncthreads();
 
-    int value = shared_memory[sharedMemoryIndex - 1] + shared_memory[sharedMemoryIndex];
-    value *= shared_memory[sharedMemoryIndex + 1];
-    value >>= constant_value;
+    // run multiple iterations simply to stress the memory. Calculation is the same as 1 iteration
+    int value = 0;
+    for (int count = 0; count < ITERATIONS; count++) {
+        value = shared_memory[sharedMemoryIndex - 1] + shared_memory[sharedMemoryIndex];
+        value *= shared_memory[sharedMemoryIndex + 1];
+        value >>= constant_value;
+    }
 
     gmem_output[i] = value;
 }
@@ -177,15 +190,20 @@ __global__ void sharedMemoryKernel()
 __global__ void constMemoryKernel() {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int value = const_value_1 + const_value_2;
-    value *= const_value_3;
-    value >>= const_shift_value;
+    // run multiple iterations simply to stress the memory. Calculation is the same as 1 iteration
+    int value = 0;
+    for (int count = 0; count < ITERATIONS; count++) {
+        value = const_value_1 + const_value_2;
+        value *= const_value_3;
+        value >>= const_shift_value;
+    }
 
     gmem_output[i] = value;
 }
 
 __global__ void constMemoryKernelReadFromArray()
 {
+#if arraySize <= MAX_CONST_ARRAY_SIZE
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     int lowerIndex = i - 1;
@@ -193,12 +211,18 @@ __global__ void constMemoryKernelReadFromArray()
         lowerIndex = arraySize - 1;
 
     int upperIndex = (i + 1) % arraySize;
+    #
+    // run multiple iterations simply to stress the memory. Calculation is the same as 1 iteration
+    int value = 0;
+    for (int count = 0; count < ITERATIONS; count++) {
+        value = const_input[lowerIndex] + const_input[i];
+        value *= const_input[upperIndex];
+        value >>= const_shift_value;
+    }
 
-    int value = const_input[lowerIndex] + const_input[i];
-    value *= const_input[upperIndex];
-    value >>= const_shift_value;
 
     gmem_output[i] = value;
+#endif
 }
 
 #pragma endregion
@@ -308,8 +332,8 @@ void testKernels() {
     testKernelRun(TestKernelType::SHARED_MEM, shiftValue, "Shared Memory Kernel, Global Memory Shift Value");
 
 
-    testKernelRun(TestKernelType::GLOBAL_MEM, shiftValue, "Global Memory Kernel, Shift Value as Parameter");
-    testKernelRun(TestKernelType::SHARED_MEM, shiftValue, "Shared Memory Kernel, Shift Value as Parameter");
+    testKernelRun(TestKernelType::GLOBAL_MEM_WITH_PARAM, shiftValue, "Global Memory Kernel, Shift Value as Parameter");
+    testKernelRun(TestKernelType::SHARED_MEM_WITH_PARAM, shiftValue, "Shared Memory Kernel, Shift Value as Parameter");
 
 
     cudaMemcpyToSymbol(const_shift_value, &shift_value_for_const_test, sizeof(shiftValue));
