@@ -9,44 +9,55 @@
 
 #include <stdio.h>
 
+// Math Problem:
+// output[i] = ((input[i - 1] + input[i]) * input[i + 1]) >> const_shift_val
+
+// boundaries wrap around: 0 - 1 -> access memory input[N - 1]
+//                         N-1 + 1 -> access memory input[0] 
+
+// This math problem does not have any special meaning. I went for something interesting.
+
+
 // For simplicity in the shared memory kernels, there must be an exact fit of blockSize in the array:
 // arraySize % blockSize == 0
-//const int arraySize = 512;
-//const int blockSize = 128;
 
+// Debugging Size
 //#define arraySize 10
 //#define blockSize 10
 
-//#define arraySize 15000
-//#define blockSize 500
+#define arraySize 15000
+#define blockSize 500
+
+#define ITERATIONS 1
 
 
+// Max Size test
 //#define blockSize 256
 // vocareum tests at blockSize * 50000
 //#define arraySize (blockSize * 250000)
+//#define ITERATIONS 1
 
-
-#define blockSize 256
-#define arraySize (blockSize * 25000)
-
-
-#define ITERATIONS 5000
+// Max Iterations & large size
+//#define blockSize 256
+//#define arraySize (blockSize * 25000)
+//#define ITERATIONS 5000
 
 
 const int numBlocks = arraySize / blockSize;
 
 static_assert(arraySize % blockSize == 0, "This program only supports array sizes that fit the block size exactly.");
 
-// Use static global memory variables to learn how to use them (would use cudaMalloc otherwise)
+// Use static global memory variables to learn how to use them (I would use cudaMalloc otherwise)
 __device__ static int gmem_input[arraySize];
 __device__ static int gmem_output[arraySize];
 
 __device__ static int gmem_shift_value;
 
+// const memory is limited. Compile this only if testing a size that
+// cuda will allow us to allocate.
 #define MAX_CONST_ARRAY_SIZE 15000
 
 #if arraySize <= MAX_CONST_ARRAY_SIZE
-// const memory is limited
 __constant__ int const_input[arraySize];
 #endif
 
@@ -69,24 +80,12 @@ static int host_input[arraySize];
 static int host_output[arraySize];
 
 
-// Math Problem:
-// output[i] = ((input[i - 1] + input[i]) * input[i + 1]) >> const_shift_val
-
-// boundaries wrap around: 0 - 1 -> access memory input[N - 1]
-//                         N-1 + 1 -> access memory input[0] 
-
-// This math problem does not have any special meaning. I went for something interesting.
-
-
 enum TestKernelType {
     GLOBAL_MEM, SHARED_MEM, CONST_MEM,
     GLOBAL_MEM_WITH_PARAM, SHARED_MEM_WITH_PARAM, CONST_MEM_ARRAY
 };
 
 #pragma region CUDA Kernels
-// Kernels will simply assume that host will set up boundaries correctly in order to
-// simplify kernel code. For a size 'N' input/output, there will be exactly N threads launched.
-
 __device__ void kernelMathFunctionGlobalMemory(const int constant_value)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
