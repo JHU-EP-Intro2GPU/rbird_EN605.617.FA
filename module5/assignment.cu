@@ -9,17 +9,21 @@
 
 #include <stdio.h>
 
-// For simplicity, there must be an exact fit of blockSize in the array:
+// For simplicity in the shared memory kernels, there must be an exact fit of blockSize in the array:
 // arraySize % blockSize == 0
 //const int arraySize = 512;
 //const int blockSize = 128;
 
-//const int arraySize = 10;
-//const int blockSize = 10;
+//#define arraySize 10
+//#define blockSize 10
 
-const int blockSize = 256;
+#define arraySize 15000
+#define blockSize 200
+
+
+//#define blockSize 256
 // vocareum tests at blockSize * 50000
-const int arraySize = blockSize * 250000;
+//#define arraySize (blockSize * 250000)
 
 constexpr auto ITERATIONS = 1;
 
@@ -34,8 +38,13 @@ __device__ static int gmem_output[arraySize];
 
 __device__ static int gmem_shift_value;
 
+#define MAX_CONST_ARRAY_SIZE 15000
 
-//__constant__ int const_input[arraySize];
+#if arraySize <= MAX_CONST_ARRAY_SIZE
+// const memory is limited
+__constant__ int const_input[arraySize];
+#endif
+
 
 __constant__ int const_shift_value;
 
@@ -43,13 +52,11 @@ __constant__ int const_value_1;
 __constant__ int const_value_2;
 __constant__ int const_value_3;
 
-const int shift_value_for_const_test = 4;
+const int shift_value_for_const_test = 3;
 
 const int value1_for_const_test = 208;
 const int value2_for_const_test = 517;
 const int value3_for_const_test = 28;
-
-
 
 
 // Host buffers
@@ -68,7 +75,7 @@ static int host_output[arraySize];
 
 enum TestKernelType {
     GLOBAL_MEM, SHARED_MEM, CONST_MEM,
-    GLOBAL_MEM_WITH_PARAM, SHARED_MEM_WITH_PARAM
+    GLOBAL_MEM_WITH_PARAM, SHARED_MEM_WITH_PARAM, CONST_MEM_ARRAY
 };
 
 #pragma region CUDA Kernels
@@ -177,6 +184,23 @@ __global__ void constMemoryKernel() {
     gmem_output[i] = value;
 }
 
+__global__ void constMemoryKernelReadFromArray()
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int lowerIndex = i - 1;
+    if (lowerIndex < 0)
+        lowerIndex = arraySize - 1;
+
+    int upperIndex = (i + 1) % arraySize;
+
+    int value = const_input[lowerIndex] + const_input[i];
+    value *= const_input[upperIndex];
+    value >>= const_shift_value;
+
+    gmem_output[i] = value;
+}
+
 #pragma endregion
 
 void populateTestData() {
@@ -247,6 +271,9 @@ void testKernelRun(TestKernelType kernelType, const int shiftValue, const char* 
         case CONST_MEM:
             constMemoryKernel<<<numBlocks, blockSize >>>();
             break;
+        case CONST_MEM_ARRAY:
+            constMemoryKernelReadFromArray<<<numBlocks, blockSize>>>();
+            break;
         default:
             break;
         }
@@ -270,7 +297,7 @@ void testKernelsLoadingShiftFromGlobalMemory(const int shiftValue)
 }
 
 void testKernels() {
-    printf("Arraysize: %d Blocksize: %d Interations: %d\n", arraySize, blockSize, ITERATIONS);
+    printf("Arraysize: %d Blocksize: %d Iterations: %d\n", arraySize, blockSize, ITERATIONS);
     populateTestData();
 
     resetOutputBufferData();
@@ -291,6 +318,12 @@ void testKernels() {
     cudaMemcpyToSymbol(const_value_3, &value3_for_const_test, sizeof(shiftValue));
 
     testKernelRun(TestKernelType::CONST_MEM, shiftValue, "Constant Memory Kernel");
+
+#if arraySize <= MAX_CONST_ARRAY_SIZE
+    // const memory is limited
+    gpuErrchk(cudaMemcpyToSymbol(const_input, host_input, sizeof(const_input)));
+    testKernelRun(TestKernelType::CONST_MEM_ARRAY, shiftValue, "Constant Memory Kernel, Read Const Memory Array");
+#endif
 }
 
 
