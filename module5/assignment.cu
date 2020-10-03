@@ -328,11 +328,14 @@ void testKernels() {
     
     const int shiftValue = 3;
 
+    printf("--------------- GLOBAL MEMORY TESTS -------------------------\n");
+
     testKernelRun(TestKernelType::GLOBAL_MEM, shiftValue, "Global Memory Kernel, Global Memory Shift Value");
-    testKernelRun(TestKernelType::SHARED_MEM, shiftValue, "Shared Memory Kernel, Global Memory Shift Value");
-
-
     testKernelRun(TestKernelType::GLOBAL_MEM_WITH_PARAM, shiftValue, "Global Memory Kernel, Shift Value as Parameter");
+
+
+    printf("\n--------------- SHARED MEMORY TESTS -------------------------\n");
+    testKernelRun(TestKernelType::SHARED_MEM, shiftValue, "Shared Memory Kernel, Global Memory Shift Value");
     testKernelRun(TestKernelType::SHARED_MEM_WITH_PARAM, shiftValue, "Shared Memory Kernel, Shift Value as Parameter");
 
 
@@ -341,6 +344,7 @@ void testKernels() {
     cudaMemcpyToSymbol(const_value_2, &value2_for_const_test, sizeof(shiftValue));
     cudaMemcpyToSymbol(const_value_3, &value3_for_const_test, sizeof(shiftValue));
 
+    printf("\n--------------- CONST MEMORY TESTS -------------------------\n");
     testKernelRun(TestKernelType::CONST_MEM, shiftValue, "Constant Memory Kernel");
 
 #if arraySize <= MAX_CONST_ARRAY_SIZE
