@@ -43,5 +43,39 @@ public:
     }
 };
 
+template <typename T>
+class DeviceMemory
+{
+    T* d_ptr;
+    size_t _size;
+
+public:
+    DeviceMemory() : d_ptr(nullptr), _size(-1) {
+    }
+
+    DeviceMemory(size_t bufferCount) : _size(bufferCount) {
+        allocate(bufferCount);
+    }
+
+    void allocate(size_t bufferCount) {
+        _size = bufferCount;
+        size_t bytes = _size * sizeof(T);
+        gpuErrchk(cudaMalloc((void**)&d_ptr, bytes));
+    }
+
+    void deallocate() {
+        cudaFree(d_ptr);
+        _size = -1;
+    }
+
+    ~DeviceMemory() {
+        deallocate();
+    }
+
+    inline T* ptr() const { return d_ptr; }
+    inline size_t size() const { return _size; }
+};
+
+
 #endif
 
