@@ -136,7 +136,7 @@ void testKernelRun(TestKernelType kernelType, const char* description, MathOpera
             sharedMemMod <<< numBlocks, blockSize, sharedMemoryBytes >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
             break;
 
-        // Register memory tests
+        // 1 Register memory tests
         case REGISTER_MEM_ADD:
             registerMemAdd <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
             break;
@@ -148,6 +148,24 @@ void testKernelRun(TestKernelType kernelType, const char* description, MathOpera
             break;
         case REGISTER_MEM_MOD:
             registerMemMod <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+
+        // 2 Register memory tests
+        case REGISTER_MEM_2_ADD:
+            numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            registerMemAdd_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_2_SUB:
+            numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            registerMemSub_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_2_MULT:
+            numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            registerMemMult_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_2_MOD:
+            numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            registerMemMod_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
             break;
 
         default:
@@ -188,6 +206,13 @@ void testKernels() {
     testKernelRun(TestKernelType::REGISTER_MEM_SUB, "Register Memory Sub Kernel", MathOperation::SUB);
     testKernelRun(TestKernelType::REGISTER_MEM_MULT, "Register Memory Mult Kernel", MathOperation::MULT);
     testKernelRun(TestKernelType::REGISTER_MEM_MOD, "Register Memory Mod Kernel", MathOperation::MOD);
+
+    printf("\n--------------- REGISTER (2) MEMORY TESTS -------------------------\n");
+    testKernelRun(TestKernelType::REGISTER_MEM_2_ADD, "Register (2) Memory Add Kernel", MathOperation::ADD);
+    testKernelRun(TestKernelType::REGISTER_MEM_2_SUB, "Register (2) Memory Sub Kernel", MathOperation::SUB);
+    testKernelRun(TestKernelType::REGISTER_MEM_2_MULT, "Register (2) Memory Mult Kernel", MathOperation::MULT);
+    testKernelRun(TestKernelType::REGISTER_MEM_2_MOD, "Register (2) Memory Mod Kernel", MathOperation::MOD);
+
 }
 
 
