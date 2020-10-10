@@ -1,0 +1,54 @@
+./assignment.exe
+
+./assignment.exe --elements 512 --blocksize 512
+
+./assignment.exe --elements 512 --blocksize 64
+
+./assignment.exe --elements 50000 --blocksize 128
+
+./assignment.exe --elements 100000 --blocksize 128
+
+
+./assignment.exe --elements 1000000 --blocksize 128
+
+./assignment.exe --elements 10000000 --blocksize 128
+
+# 100 Million numbers seems to show some kind of difference
+./assignment.exe --elements 100000000 --blocksize 128
+
+Arraysize: 100000000 Blocksize: 128
+--------------- GLOBAL MEMORY TESTS -------------------------
+Global Memory Add Kernel Execution time = 9390 microseconds.
+Global Memory Sub Kernel Execution time = 8546 microseconds.
+Global Memory Mult Kernel Execution time = 8783 microseconds.
+Global Memory Mod Kernel Execution time = 16283 microseconds.
+
+--------------- SHARED MEMORY TESTS -------------------------
+Shared Memory Add Kernel Execution time = 12549 microseconds.
+Shared Memory Sub Kernel Execution time = 11794 microseconds.
+Shared Memory Mult Kernel Execution time = 13129 microseconds.
+Shared Memory Mod Kernel Execution time = 19172 microseconds.
+
+--------------- REGISTER (1) MEMORY TESTS -------------------------
+Register Memory Add Kernel Execution time = 8238 microseconds.
+Register Memory Sub Kernel Execution time = 8591 microseconds.
+Register Memory Mult Kernel Execution time = 9299 microseconds.
+Register Memory Mod Kernel Execution time = 16633 microseconds.
+
+--------------- REGISTER (2) MEMORY TESTS -------------------------
+Register (2) Memory Add Kernel Execution time = 9854 microseconds.
+Register (2) Memory Sub Kernel Execution time = 8751 microseconds.
+Register (2) Memory Mult Kernel Execution time = 9444 microseconds.
+Register (2) Memory Mod Kernel Execution time = 15549 microseconds.
+
+--------------- REGISTER (4) MEMORY TESTS -------------------------
+Register (4) Memory Add Kernel Execution time = 8395 microseconds.
+Register (4) Memory Sub Kernel Execution time = 7801 microseconds.
+Register (4) Memory Mult Kernel Execution time = 8923 microseconds.
+Register (4) Memory Mod Kernel Execution time = 14571 microseconds.
+
+--------------- REGISTER (8) MEMORY TESTS -------------------------
+Register (8) Memory Add Kernel Execution time = 7983 microseconds.
+Register (8) Memory Sub Kernel Execution time = 7677 microseconds.
+Register (8) Memory Mult Kernel Execution time = 7964 microseconds.
+Register (8) Memory Mod Kernel Execution time = 14006 microseconds.

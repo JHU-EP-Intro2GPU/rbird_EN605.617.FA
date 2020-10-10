@@ -30,4 +30,16 @@ __global__ void registerMemSub_2(int* output, const int* input1, const int* inpu
 __global__ void registerMemMult_2(int* output, const int* input1, const int* input2, const size_t count);
 __global__ void registerMemMod_2(int* output, const int* input1, const int* input2, const size_t count);
 
+// Register memory using 4 registers for loop unrolling
+__global__ void registerMemAdd_4(int* output, const int* input1, const int* input2, const size_t count);
+__global__ void registerMemSub_4(int* output, const int* input1, const int* input2, const size_t count);
+__global__ void registerMemMult_4(int* output, const int* input1, const int* input2, const size_t count);
+__global__ void registerMemMod_4(int* output, const int* input1, const int* input2, const size_t count);
+
+// Register memory using 8 registers for loop unrolling
+__global__ void registerMemAdd_8(int* output, const int* input1, const int* input2, const size_t count);
+__global__ void registerMemSub_8(int* output, const int* input1, const int* input2, const size_t count);
+__global__ void registerMemMult_8(int* output, const int* input1, const int* input2, const size_t count);
+__global__ void registerMemMod_8(int* output, const int* input1, const int* input2, const size_t count);
+
 #endif

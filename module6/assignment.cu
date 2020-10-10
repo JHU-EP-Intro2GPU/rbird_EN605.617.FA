@@ -9,6 +9,7 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <memory>
 
 #include <stdio.h>
 
@@ -25,6 +26,8 @@ enum TestKernelType {
     SHARED_MEM_ADD, SHARED_MEM_SUB, SHARED_MEM_MULT, SHARED_MEM_MOD,
     REGISTER_MEM_ADD, REGISTER_MEM_SUB, REGISTER_MEM_MULT, REGISTER_MEM_MOD,
     REGISTER_MEM_2_ADD, REGISTER_MEM_2_SUB, REGISTER_MEM_2_MULT, REGISTER_MEM_2_MOD,
+    REGISTER_MEM_4_ADD, REGISTER_MEM_4_SUB, REGISTER_MEM_4_MULT, REGISTER_MEM_4_MOD,
+    REGISTER_MEM_8_ADD, REGISTER_MEM_8_SUB, REGISTER_MEM_8_MULT, REGISTER_MEM_8_MOD,
 };
 
 enum MathOperation {
@@ -153,20 +156,69 @@ void testKernelRun(TestKernelType kernelType, const char* description, MathOpera
         // 2 Register memory tests
         case REGISTER_MEM_2_ADD:
             numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
             registerMemAdd_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
             break;
         case REGISTER_MEM_2_SUB:
             numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
             registerMemSub_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
             break;
         case REGISTER_MEM_2_MULT:
             numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
             registerMemMult_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
             break;
         case REGISTER_MEM_2_MOD:
             numBlocks = ((arraySize / 2) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
             registerMemMod_2 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
             break;
+
+            // 4 Register memory tests
+        case REGISTER_MEM_4_ADD:
+            numBlocks = ((arraySize / 4) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemAdd_4 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_4_SUB:
+            numBlocks = ((arraySize / 4) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemSub_4 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_4_MULT:
+            numBlocks = ((arraySize / 4) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemMult_4 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_4_MOD:
+            numBlocks = ((arraySize / 4) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemMod_4 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+
+            // 8 Register memory tests
+        case REGISTER_MEM_8_ADD:
+            numBlocks = ((arraySize / 8) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemAdd_8 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_8_SUB:
+            numBlocks = ((arraySize / 8) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemSub_8 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_8_MULT:
+            numBlocks = ((arraySize / 8) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemMult_8 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+        case REGISTER_MEM_8_MOD:
+            numBlocks = ((arraySize / 8) + blockSize - 1) / blockSize;
+            numBlocks = (numBlocks == 0) ? 1 : numBlocks;
+            registerMemMod_8 <<< numBlocks, blockSize >>> (d_output.ptr(), d_source1.ptr(), d_source2.ptr(), arraySize);
+            break;
+
 
         default:
             break;
@@ -181,7 +233,7 @@ void testKernelRun(TestKernelType kernelType, const char* description, MathOpera
 }
 
 void testKernels() {
-//    printf("Arraysize: %d Blocksize: %d Iterations: %d\n", arraySize, blockSize, ITERATIONS);
+    printf("Arraysize: %d Blocksize: %d\n", arraySize, blockSize);
     populateTestData();
 
     resetOutputBufferData();
@@ -213,11 +265,35 @@ void testKernels() {
     testKernelRun(TestKernelType::REGISTER_MEM_2_MULT, "Register (2) Memory Mult Kernel", MathOperation::MULT);
     testKernelRun(TestKernelType::REGISTER_MEM_2_MOD, "Register (2) Memory Mod Kernel", MathOperation::MOD);
 
+    // TODO: 4 registers, maybe 8
+    printf("\n--------------- REGISTER (4) MEMORY TESTS -------------------------\n");
+    testKernelRun(TestKernelType::REGISTER_MEM_4_ADD, "Register (4) Memory Add Kernel", MathOperation::ADD);
+    testKernelRun(TestKernelType::REGISTER_MEM_4_SUB, "Register (4) Memory Sub Kernel", MathOperation::SUB);
+    testKernelRun(TestKernelType::REGISTER_MEM_4_MULT, "Register (4) Memory Mult Kernel", MathOperation::MULT);
+    testKernelRun(TestKernelType::REGISTER_MEM_4_MOD, "Register (4) Memory Mod Kernel", MathOperation::MOD);
+
+    printf("\n--------------- REGISTER (8) MEMORY TESTS -------------------------\n");
+    testKernelRun(TestKernelType::REGISTER_MEM_8_ADD, "Register (8) Memory Add Kernel", MathOperation::ADD);
+    testKernelRun(TestKernelType::REGISTER_MEM_8_SUB, "Register (8) Memory Sub Kernel", MathOperation::SUB);
+    testKernelRun(TestKernelType::REGISTER_MEM_8_MULT, "Register (8) Memory Mult Kernel", MathOperation::MULT);
+    testKernelRun(TestKernelType::REGISTER_MEM_8_MOD, "Register (8) Memory Mod Kernel", MathOperation::MOD);
 }
 
 
 int main(int argc, char* argv[])
 {
+    for (int i = 0; i < argc; i++) {
+        const char* arg = argv[i];
+        if (strcmp(arg, "--elements") == 0) {
+            i++;
+            arraySize = atoi(argv[i]);
+        }
+        else if (strcmp(arg, "--blocksize") == 0) {
+            i++;
+            blockSize = atoi(argv[i]);
+        }
+    }
+
     testKernels();
 
     return 0;
