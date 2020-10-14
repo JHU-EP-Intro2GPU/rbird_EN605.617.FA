@@ -4,12 +4,18 @@
 #include <time.h> 
 #include <cuda.h> 
 
-#define sizeOfArray 1024*1024
- 
-__global__ void arrayAddition(int *device_a, int *device_b, int *device_result)
+#define sizeOfArray 1024*1024 * 15
+
+
+constexpr int arraySizePerCall = 1024 * 1024;
+
+static_assert (sizeOfArray% arraySizePerCall == 0, "stream size must divide evenly into the total size");
+
+__global__ void arrayAddition(int *device_a, int *device_b, int *device_result, int iteration)
 {
 
-	int threadId = threadIdx.x + blockIdx.x * blockDim.x ;
+	int threadId = threadIdx.x + blockIdx.x * blockDim.x;
+	threadId += iteration * arraySizePerCall;
 
 	if (threadId < sizeOfArray) 
         device_result[threadId]= device_a[threadId]+device_b[threadId]; 
@@ -59,10 +65,12 @@ int main ( int argc, char **argv )
   cudaMemcpyAsync(device_b, host_b, sizeOfArray * sizeof ( int ), cudaMemcpyHostToDevice, stream); 
 
   /*Kernel call*/ 
-
-  arrayAddition <<<sizeOfArray, 1, 1, stream>>>(device_a, device_b, device_result);
-
-  cudaMemcpyAsync(host_result, device_result, sizeOfArray * sizeof ( int ), cudaMemcpyDeviceToHost, stream);
+  int totalIterations = sizeOfArray / arraySizePerCall;
+  for (int iteration = 0; iteration < totalIterations; iteration++) {
+	  arrayAddition <<<sizeOfArray, 1, 1, stream >>> (device_a, device_b, device_result, iteration);
+	  int ptrOffset = iteration * arraySizePerCall;
+	  cudaMemcpyAsync(host_result + ptrOffset, device_result + ptrOffset, arraySizePerCall * sizeof(int), cudaMemcpyDeviceToHost, stream);
+  }
 
   cudaStreamSynchronize(stream);
   cudaEventRecord(stop, 0);
@@ -72,6 +80,12 @@ int main ( int argc, char **argv )
   printf("*********** CDAC - Tech Workshop : hyPACK-2013 \n"); 
   printf("\n Size of array : %d \n", sizeOfArray); 
   printf("\n Time taken: %3.1f ms \n", elapsedTime); 
+
+  for (int i = 0; i < sizeOfArray; i++) {
+	  if (host_a[i] + host_b[i] != host_result[i]) {
+		  printf("ERROR(%d): %d + %d = %d\n", host_a[i], host_b[i], host_result[i]);
+	  }
+  }
 
   cudaFreeHost(host_a); 
   cudaFreeHost(host_b); 
