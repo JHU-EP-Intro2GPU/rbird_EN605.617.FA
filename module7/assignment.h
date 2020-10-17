@@ -42,8 +42,23 @@ public:
         float time_ms;
         gpuErrchk(cudaEventElapsedTime(&time_ms, startEvent, stopEvent));
 
-        float time_micros = time_ms * 1000;
-        printf("%s Execution time = %f microseconds\n", name, time_micros);
+        unsigned long total_micros = (unsigned long) (time_ms * 1000);
+        int time_micros = total_micros % 1000;
+
+        unsigned long total_millis = total_micros / 1000;
+        int time_millis = total_millis % 1000;
+
+        int timeSeconds = total_millis / 1000;
+
+        if (timeSeconds > 0) {
+            printf("%s Execution time = %d seconds %d milliseconds %d microseconds\n", name, timeSeconds, time_millis, time_micros);
+        }
+        else if (time_millis > 0) {
+            printf("%s Execution time = %d milliseconds %d microseconds\n", name, time_millis, time_micros);
+        }
+        else {
+            printf("%s Execution time = %d microseconds\n", name, time_micros);
+        }
 
         gpuErrchk(cudaEventDestroy(startEvent));
         gpuErrchk(cudaEventDestroy(stopEvent));

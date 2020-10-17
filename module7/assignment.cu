@@ -6,6 +6,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <vector>
+#include <stdint.h>
+
+bool disableVerification = false;
+bool disablePopulateRandomData = false;
 
 struct StreamTest
 {
@@ -40,20 +44,25 @@ __global__ void calculationPosition(float* finalPosition, const float* initialPo
     float initPos = initialPosition[tid];
     float veloc = velocity[tid];
     float accel = acceleration[tid];
+    //float time = tid; // integer can overflow on the squared value
+    int time = tid % 1000; // large values introduce error
 
-    // time is the thread id
-    float finalPos = initPos + veloc * tid + 0.5 * accel * (tid * tid);
+    float finalPos = initPos + veloc * time + 0.5 * accel * (time * time);
     finalPosition[tid] = finalPos;
 }
 
 void verifyOutput(const StreamData& data, int streamIndex) {
+    if (disableVerification)
+        return;
+
     for (int i = 0; i < data.output.size(); i++) {
         float initPos = data.position.host()[i];
         float veloc = data.velocity.host()[i];
         float accel = data.acceleration.host()[i];
         float calculated = data.output.host()[i];
+        int time = i % 1000;
 
-        float expectedAnswer = initPos + veloc * i + (0.5) * accel * pow(i, 2);
+        float expectedAnswer = initPos + veloc * time + (0.5) * accel * pow(time, 2);
 
         if (calculated != expectedAnswer) {
             printf("ERROR (%d, %d): pos: %f vel: %f acel: %f calc: %f, expected: %f\n", streamIndex, i, initPos, veloc, accel, calculated, expectedAnswer);
@@ -62,6 +71,9 @@ void verifyOutput(const StreamData& data, int streamIndex) {
 }
 
 void populateData(StreamData& data) {
+    if (disablePopulateRandomData)
+        return;
+
     for (size_t i = 0; i < data.output.size(); i++) {
         data.position.host()[i] = (float(rand() % 20099)) / 10 - 100; //[-100.00, 100.00]
         data.velocity.host()[i] = (float(rand() % 4099)) / 10 - 20; //[-20.00, 20.00]
@@ -141,8 +153,36 @@ int main(int argc, char* argv[])
     testValues.numberOfStreams = 4;   // The number of asynchronous streams
     testValues.blockSize = 32;        // the block size
 
+    for (int i = 0; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--elements") {
+            testValues.totalElements = atoi(argv[++i]);
+        }
+        else if (arg == "--streamSize") {
+            testValues.streamSize = atoi(argv[++i]);
+        }
+        else if (arg == "--streams") {
+            testValues.numberOfStreams = atoi(argv[++i]);
+        }
+        else if (arg == "--blocksize") {
+            testValues.blockSize = atoi(argv[++i]);
+        }
+        else if (arg == "--disableVerify") {
+            disableVerification = true;
+        }
+        else if (arg == "--disablePopulateData") {
+            disablePopulateRandomData = true;
+        }
+    }
 
-    runStreamTests(testValues);
+    printf("Elements: %u StreamSize: %u Streams: %u BlockSize: %u\n",
+        testValues.totalElements, testValues.streamSize, testValues.numberOfStreams, testValues.blockSize);
+    printf("Disable Verify: %d Disable Data Generation: %d\n", (int) disableVerification, (int) disablePopulateRandomData);
+
+    {
+        TimeCodeBlockCuda kernelRun("Total processing time");
+        runStreamTests(testValues);
+    }
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
