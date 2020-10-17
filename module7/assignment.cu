@@ -8,7 +8,7 @@
 #include <vector>
 #include <stdint.h>
 
-bool disableVerification = false;
+bool enabledVerification = false;
 bool disablePopulateRandomData = false;
 
 struct StreamTest
@@ -52,7 +52,7 @@ __global__ void calculationPosition(float* finalPosition, const float* initialPo
 }
 
 void verifyOutput(const StreamData& data, int streamIndex) {
-    if (disableVerification)
+    if (!enabledVerification)
         return;
 
     for (int i = 0; i < data.output.size(); i++) {
@@ -167,8 +167,8 @@ int main(int argc, char* argv[])
         else if (arg == "--blocksize") {
             testValues.blockSize = atoi(argv[++i]);
         }
-        else if (arg == "--disableVerify") {
-            disableVerification = true;
+        else if (arg == "--enableVerify") {
+            enabledVerification = true;
         }
         else if (arg == "--disablePopulateData") {
             disablePopulateRandomData = true;
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 
     printf("Elements: %u StreamSize: %u Streams: %u BlockSize: %u\n",
         testValues.totalElements, testValues.streamSize, testValues.numberOfStreams, testValues.blockSize);
-    printf("Disable Verify: %d Disable Data Generation: %d\n", (int) disableVerification, (int) disablePopulateRandomData);
+    printf("Verify Output: %d Disable Data Generation: %d\n", (int) enabledVerification, (int) disablePopulateRandomData);
 
     {
         TimeCodeBlockCuda kernelRun("Total processing time");
