@@ -37,11 +37,11 @@ void printMat(float*P,int uWP,int uHP){
         return EXIT_FAILURE;
     }
     if (B == 0) {
-        fprintf (stderr, "!!!! host memory allocation error (A)\n");
+        fprintf (stderr, "!!!! host memory allocation error (B)\n");
         return EXIT_FAILURE;
     }
     if (C == 0) {
-      fprintf (stderr, "!!!! host memory allocation error (A)\n");
+      fprintf (stderr, "!!!! host memory allocation error (C)\n");
       return EXIT_FAILURE;
     }
 
@@ -64,19 +64,19 @@ void printMat(float*P,int uWP,int uHP){
     /*ALLOCATE ON THE DEVICE*/
     status=cublasAlloc(HA*WA,sizeof(float),(void**)&AA);
     if (status != CUBLAS_STATUS_SUCCESS) {
-      fprintf (stderr, "!!!! device memory allocation error (A)\n");
+      fprintf (stderr, "!!!! device memory allocation error (AA)\n");
       return EXIT_FAILURE;
     }
 
     status=cublasAlloc(HB*WB,sizeof(float),(void**)&BB);
     if (status != CUBLAS_STATUS_SUCCESS) {
-      fprintf (stderr, "!!!! device memory allocation error (A)\n");
+      fprintf (stderr, "!!!! device memory allocation error (BB)\n");
       return EXIT_FAILURE;
     }
 
     status=cublasAlloc(HC*WC,sizeof(float),(void**)&CC);
     if (status != CUBLAS_STATUS_SUCCESS) {
-      fprintf (stderr, "!!!! device memory allocation error (A)\n");
+      fprintf (stderr, "!!!! device memory allocation error (CC)\n");
       return EXIT_FAILURE;
     }
 
@@ -110,11 +110,11 @@ void printMat(float*P,int uWP,int uHP){
 
     /* PERFORMANCE OUTPUT*/
 
-    printf("\nMatriz A:\n");
+    printf("\nMatrix A:\n");
     printMat(A,WA,HA);
-    printf("\nMatriz B:\n");
+    printf("\nMatrix B:\n");
     printMat(B,WB,HB);
-    printf("\nMatriz C:\n");
+    printf("\nMatrix C:\n");
     printMat(C,WC,HC);
 
     free( A );  free( B );  free ( C );

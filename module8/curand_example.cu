@@ -1,4 +1,7 @@
+#ifndef WIN32
 #include <unistd.h>
+#endif
+
 #include <stdio.h>
 
 /* we need these includes for CUDA's random number stuff */
