@@ -137,24 +137,39 @@ void performMatrixMultiply(Matrix<float>& matrix1, Matrix<float>& matrix2, Matri
     int leadingDimensionB = matrix2.Rows(); //k; // matrix2.Rows();
     int leadingDimensionC = output.Rows(); //m; // output.Rows();
 
-    // TODO: Test, verify correct answers, and write function for double
     cublasCheck(cublasSgemm(
         handle, nonTranspose, nonTranspose,
         m, n, k,
         &alpha, matrix1.device(), leadingDimensionA,
         matrix2.device(), leadingDimensionB, &beta,
         output.device(), leadingDimensionC));
-
 }
 
 void performMatrixMultiply(Matrix<double>& matrix1, Matrix<double>& matrix2, Matrix<double>& output, cublasHandle_t handle)
 {
-    // TODO
+    cublasOperation_t nonTranspose = cublasOperation_t::CUBLAS_OP_N; // NonTranspose, 'N'
+    int m = matrix1.Rows(); // op ( A ) m × k , op ( B ) k × n and C m × n , respectively. (NVidia documentation
+    int n = matrix2.Cols();
+    int k = matrix1.Cols();
+    double alpha = 1.0; //  scalar used for multiplication
+    double beta = 0.0; //  scalar used for multiplication
+    int leadingDimensionA = matrix1.Rows(); //m; // matrix1.Rows();
+    int leadingDimensionB = matrix2.Rows(); //k; // matrix2.Rows();
+    int leadingDimensionC = output.Rows(); //m; // output.Rows();
+
+    cublasCheck(cublasDgemm(
+        handle, nonTranspose, nonTranspose,
+        m, n, k,
+        &alpha, matrix1.device(), leadingDimensionA,
+        matrix2.device(), leadingDimensionB, &beta,
+        output.device(), leadingDimensionC));
 }
 
 template <typename T>
-void testMatrixMultiply(const CommandLineArgs& testArgs, cublasHandle_t handle)
+void testMatrixMultiply(const CommandLineArgs& testArgs, cublasHandle_t handle, const char* codeBlockDesc)
 {
+    TimeCodeBlockCuda reportTime(codeBlockDesc);
+
     Matrix<T> matrix1(testArgs.A, testArgs.B);
     Matrix<T> matrix2(testArgs.B, testArgs.C);
     Matrix<T> resultMatrix(testArgs.A, testArgs.C);
@@ -193,11 +208,19 @@ int main(int argc, const char* argv[])
     CommandLineArgs testArgs(argc, argv);
     srand(time(NULL));
 
+    std::printf("Processing Matrices: A[%d,%d] x B[%d,%d] = C[%d,%d]\n",
+        testArgs.A, testArgs.B, // Matrix A dimensions
+        testArgs.B, testArgs.C, // Matrix B Dimensions
+        testArgs.A, testArgs.C); // Matrix C Dimensions
+
     cublasHandle_t cublasContext;
     cublasCheck(cublasCreate(&cublasContext));
 
-    testMatrixMultiply<float>(testArgs, cublasContext);
-    //testMatrixMultiply<double>(testArgs, cublasContext);
+    if (testArgs.debug) std::cout << "Testing Single precision:" << std::endl;
+    testMatrixMultiply<float>(testArgs, cublasContext, "Single Precision");
+
+    if (testArgs.debug) std::cout << "Testing Double precision:" << std::endl;
+    testMatrixMultiply<double>(testArgs, cublasContext, "Double Precision");
 
     cublasCheck(cublasDestroy(cublasContext));
 
