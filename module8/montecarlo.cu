@@ -28,7 +28,7 @@ public:
         }
 
         if (!IsPowerOfTwo(blocksize)) {
-            printf("Please enter a blocksize that is a power of 2 (this is for simplicity of addition code).\n");
+            printf("Please enter a blocksize that is a power of 2 (this is for simplicity of reduction code).\n");
             exit(0);
         }
     }
