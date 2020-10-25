@@ -86,10 +86,10 @@ class Matrix : public HostAndDeviceMemory<T>
     int cols, rows;
 
 public:
-    Matrix(int _rows, int _cols) : HostAndDeviceMemory(_cols * _rows), cols(_cols), rows(_rows) {
+    Matrix(int _rows, int _cols) : HostAndDeviceMemory<T>(_cols * _rows), cols(_cols), rows(_rows) {
     }
 
-    ~Matrix()
+    virtual ~Matrix()
     {
     }
 
@@ -112,14 +112,14 @@ public:
     }
 
     void populateData() {
-        for (size_t count = 0; count < size(); count++) {
-            host()[count] = count; //+ 1;
+        for (size_t count = 0; count < this->size(); count++) {
+            this->host()[count] = count; //+ 1;
         }
     }
 
     void populateRandomData() {
-        for (size_t count = 0; count < size(); count++) {
-            writeRandomValueTo(host()[count]);
+        for (size_t count = 0; count < this->size(); count++) {
+            writeRandomValueTo(this->host()[count]);
         }
     }
 };
@@ -128,7 +128,7 @@ public:
 void performMatrixMultiply(Matrix<float>& matrix1, Matrix<float>& matrix2, Matrix<float>& output, cublasHandle_t handle)
 {
     cublasOperation_t nonTranspose = cublasOperation_t::CUBLAS_OP_N; // NonTranspose, 'N'
-    int m = matrix1.Rows(); // op ( A ) m × k , op ( B ) k × n and C m × n , respectively. (NVidia documentation
+    int m = matrix1.Rows(); // op ( A ) m ï¿½ k , op ( B ) k ï¿½ n and C m ï¿½ n , respectively. (NVidia documentation
     int n = matrix2.Cols();
     int k = matrix1.Cols();
     float alpha = 1.0; //  scalar used for multiplication
@@ -148,7 +148,7 @@ void performMatrixMultiply(Matrix<float>& matrix1, Matrix<float>& matrix2, Matri
 void performMatrixMultiply(Matrix<double>& matrix1, Matrix<double>& matrix2, Matrix<double>& output, cublasHandle_t handle)
 {
     cublasOperation_t nonTranspose = cublasOperation_t::CUBLAS_OP_N; // NonTranspose, 'N'
-    int m = matrix1.Rows(); // op ( A ) m × k , op ( B ) k × n and C m × n , respectively. (NVidia documentation
+    int m = matrix1.Rows(); // op ( A ) m ï¿½ k , op ( B ) k ï¿½ n and C m ï¿½ n , respectively. (NVidia documentation
     int n = matrix2.Cols();
     int k = matrix1.Cols();
     double alpha = 1.0; //  scalar used for multiplication

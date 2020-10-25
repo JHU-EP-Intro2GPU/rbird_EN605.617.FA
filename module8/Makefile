@@ -1,5 +1,6 @@
-all: assignment.cu
-	nvcc assignment.cu -std=c++11 -lcudart -lcuda -lcusparse -lcusolver -lcublas -I common/inc -o assignment.exe
+all: montecarlo.cu kernels.cu matrixMultiply.cu
+	nvcc montecarlo.cu kernels.cu -std=c++11 -lcudart -lcuda -lcusparse -lcusolver -lcublas -I common/inc -o montecarlo.exe
+	nvcc matrixMultiply.cu -std=c++11 -lcudart -lcuda -lcusparse -lcusolver -lcublas -I common/inc -o matrixMultiply.exe
 
 fft: cufft_example.cu
 	nvcc cufft_example.cu -lcudart -lcuda -lcufft -I common/inc -o cufft_example

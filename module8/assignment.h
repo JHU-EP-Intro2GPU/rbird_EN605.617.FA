@@ -130,7 +130,7 @@ public:
         _size = -1;
     }
 
-    ~HostAndDeviceMemory() {
+    virtual ~HostAndDeviceMemory() {
         deallocate();
     }
 
