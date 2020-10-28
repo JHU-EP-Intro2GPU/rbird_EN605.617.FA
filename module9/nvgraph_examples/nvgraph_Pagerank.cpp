@@ -133,16 +133,27 @@ int main(int argc, char **argv)
     destination_offsets_h [5] = 8;
     destination_offsets_h [6] = 10;
 
-    source_indices_h [0] = 2;
-    source_indices_h [1] = 0;
-    source_indices_h [2] = 2;
-    source_indices_h [3] = 0;
-    source_indices_h [4] = 4;
-    source_indices_h [5] = 5;
-    source_indices_h [6] = 2;
+    // edges going to 0 (offset value is index 0)
+    source_indices_h [0] = 2; // 2 -> 0
+
+    // edges going to 1 (offset value is index 1)
+    source_indices_h [1] = 0; // 0 -> 1
+    source_indices_h [2] = 2; // 2 -> 1
+
+    // edges going to 2 (offset value is 3)
+    source_indices_h [3] = 0; // 0 -> 2
+
+    // edges going to 3 (offset value is 4)
+    source_indices_h [4] = 4; // 4 -> 3
+    source_indices_h [5] = 5; // 5 -> 3
+
+    // edges going to 4 (offset value is 6)
+    source_indices_h [6] = 2; // 2 -> 4
     source_indices_h [7] = 3;
-    source_indices_h [8] = 3;
-    source_indices_h [9] = 4;
+
+    // edges going to 5 (offset value is 8)
+    source_indices_h [8] = 3; // 3 -> 5
+    source_indices_h [9] = 4; // 4 -> 5
 
     bookmark_h[0] = 0.0f;
     bookmark_h[1] = 1.0f;
