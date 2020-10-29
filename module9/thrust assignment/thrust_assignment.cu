@@ -1,11 +1,9 @@
 
 #include "assignment.h"
-#include "Operators.h"
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/sequence.h>
-#include <thrust/random.h>
 #include <random>
 
 #include <iostream>
@@ -80,6 +78,8 @@ void testThrustOperators(const CommandLineArgs& args, std::string typeName) {
     thrust::device_vector<T> d_outputAdd(args.elements), d_outputSub(args.elements);
     thrust::device_vector<T> d_outputMult(args.elements), d_outputMod(args.elements);
 
+    std::cout << std::endl;
+
     // Make transform calls and report times
     {
         TimeCodeBlockCuda timeAdd(typeName + " Add");
@@ -111,6 +111,9 @@ void testThrustOperators(const CommandLineArgs& args, std::string typeName) {
 int main(int argc, const char* argv[])
 {
     CommandLineArgs args(argc, argv);
+
+    const char* elementType = (args.randomElements) ? "Random" : "Sequential";
+    std::printf("%s Elements: %d\n", elementType, args.elements);
 
     // Modulus operator is only compatible with integral values (floats and doubles not supported)
     testThrustOperators<short>(args, "short");
