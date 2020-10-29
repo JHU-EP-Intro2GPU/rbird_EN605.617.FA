@@ -5,6 +5,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/sequence.h>
 #include <random>
+#include <time.h>
 
 #include <iostream>
 
@@ -114,6 +115,9 @@ int main(int argc, const char* argv[])
 
     const char* elementType = (args.randomElements) ? "Random" : "Sequential";
     std::printf("%s Elements: %d\n", elementType, args.elements);
+
+    if (args.randomElements)
+        srand(time(NULL));
 
     // Modulus operator is only compatible with integral values (floats and doubles not supported)
     testThrustOperators<short>(args, "short");
