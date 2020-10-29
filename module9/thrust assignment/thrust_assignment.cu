@@ -1,4 +1,7 @@
 
+#include "assignment.h"
+#include "Operators.h"
+
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/sequence.h>
@@ -46,34 +49,19 @@ public:
 constexpr int RandomMin = 1;
 constexpr int RandomMax = 100;
 
-void writeRandomValue(int& value) {
-    value = RandomMin + (rand() % RandomMax);
+inline int randomValue() {
+    return RandomMin + (rand() % RandomMax);
 }
 
-void writeRandomValue(double& value) {
-    double f = (double)rand() / RAND_MAX;
-    value = RandomMin + f * (RandomMax - RandomMin);
-}
-
-// I couldn't get thrust random to compile on windows:
-// create a minstd_rand object to act as our source of randomness
-/*
-thrust::minstd_rand rng;
-thrust::random::normal_distribution<T> dist(2, 100);
-
-// won't compile on windows
-inputA[i] = dist(rng);
-inputB[i] = dist(rng);
-*/
-template<typename T>
-void testThrustOperators(const CommandLineArgs& args) {
+template <typename T>
+void testThrustOperators(const CommandLineArgs& args, std::string typeName) {
     // Device Vector subscript operator ([]) does a memcpy on EACH call. Avoid its use
     thrust::host_vector<T> inputA(args.elements), inputB(args.elements);
 
     if (args.randomElements) {
         for (size_t i = 0; i < args.elements; i++) {
-            writeRandomValue(inputA[i]);
-            writeRandomValue(inputB[i]);
+            inputA[i] = randomValue();
+            inputB[i] = randomValue();
         }
     }
     else {
@@ -89,13 +77,26 @@ void testThrustOperators(const CommandLineArgs& args) {
     thrust::device_vector<T> d_inputA(inputA), d_inputB(inputB);
 
     // Only have output vectors on device. No need to verify correct values from thrust (except for debug)
-    thrust::device_vector<T> d_outputAdd, d_outputSub, d_outputMult, d_outputMod;
+    thrust::device_vector<T> d_outputAdd(args.elements), d_outputSub(args.elements);
+    thrust::device_vector<T> d_outputMult(args.elements), d_outputMod(args.elements);
 
-    // Make transform calls
-    thrust::transform(d_inputA.begin(), d_inputA.end(), d_outputAdd, thrust::plus<T>());
-    thrust::transform(d_inputA.begin(), d_inputA.end(), d_outputSub, thrust::minus<T>());
-    thrust::transform(d_inputA.begin(), d_inputA.end(), d_outputMult, thrust::multiplies<T>());
-    thrust::transform(d_inputA.begin(), d_inputA.end(), d_outputMod, thrust::modulus<T>());
+    // Make transform calls and report times
+    {
+        TimeCodeBlockCuda timeAdd(typeName + " Add");
+        thrust::transform(d_inputA.begin(), d_inputA.end(), d_inputB.begin(), d_outputAdd.begin(), thrust::plus<T>());
+    }
+    {
+        TimeCodeBlockCuda timeAdd(typeName + " Subtract");
+        thrust::transform(d_inputA.begin(), d_inputA.end(), d_inputB.begin(), d_outputSub.begin(), thrust::minus<T>());
+    }
+    {
+        TimeCodeBlockCuda timeAdd(typeName + " Multiply");
+        thrust::transform(d_inputA.begin(), d_inputA.end(), d_inputB.begin(), d_outputMult.begin(), thrust::multiplies<T>());
+    }
+    {
+        TimeCodeBlockCuda timeAdd(typeName + " Divide");
+        thrust::transform(d_inputA.begin(), d_inputA.end(), d_inputB.begin(), d_outputMod.begin(), thrust::modulus<T>());
+    }
 
     if (args.debug) {
         thrust::host_vector<T> outputAdd(d_outputAdd), outputSub(d_outputSub), outputMult(d_outputMult), outputMod(d_outputMod);
@@ -111,7 +112,10 @@ int main(int argc, const char* argv[])
 {
     CommandLineArgs args(argc, argv);
 
-    testThrustOperators<int>(args);
+    // Modulus operator is only compatible with integral values (floats and doubles not supported)
+    testThrustOperators<short>(args, "short");
+    testThrustOperators<int>(args, "int");
+    testThrustOperators<long>(args, "long");
 
     return 0;
 }
