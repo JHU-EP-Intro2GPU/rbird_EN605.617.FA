@@ -57,6 +57,8 @@ void testThrustOperators(const CommandLineArgs& args, std::string typeName) {
     // Device Vector subscript operator ([]) does a memcpy on EACH call. Avoid its use
     thrust::host_vector<T> inputA(args.elements), inputB(args.elements);
 
+    std::cout << std::endl << "Testing: " << typeName << std::endl;
+
     if (args.randomElements) {
         for (size_t i = 0; i < args.elements; i++) {
             inputA[i] = randomValue();
@@ -69,8 +71,8 @@ void testThrustOperators(const CommandLineArgs& args, std::string typeName) {
     }
 
     if (args.debug) {
-        std::cout << "InputA:" << std::endl << inputA << std::endl;
-        std::cout << "InputB:" << std::endl << inputB << std::endl;
+        std::cout << std::endl << "InputA:" << std::endl << inputA << std::endl;
+        std::cout << "InputB:" << std::endl << inputB << std::endl << std::endl;
     }
 
     thrust::device_vector<T> d_inputA(inputA), d_inputB(inputB);
@@ -78,8 +80,6 @@ void testThrustOperators(const CommandLineArgs& args, std::string typeName) {
     // Only have output vectors on device. No need to verify correct values from thrust (except for debug)
     thrust::device_vector<T> d_outputAdd(args.elements), d_outputSub(args.elements);
     thrust::device_vector<T> d_outputMult(args.elements), d_outputMod(args.elements);
-
-    std::cout << std::endl;
 
     // Make transform calls and report times
     {
@@ -102,7 +102,7 @@ void testThrustOperators(const CommandLineArgs& args, std::string typeName) {
     if (args.debug) {
         thrust::host_vector<T> outputAdd(d_outputAdd), outputSub(d_outputSub), outputMult(d_outputMult), outputMod(d_outputMod);
 
-        std::cout << "OutputAdd:" << std::endl << outputAdd << std::endl;
+        std::cout << std::endl << "OutputAdd:" << std::endl << outputAdd << std::endl;
         std::cout << "OutputSub:" << std::endl << outputSub << std::endl;
         std::cout << "OutputMult:" << std::endl << outputMult << std::endl;
         std::cout << "OutputMod:" << std::endl << outputMod << std::endl;
