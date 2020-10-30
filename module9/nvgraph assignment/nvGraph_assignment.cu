@@ -8,9 +8,20 @@
 // starting point:
 // Nvidia example, https://docs.nvidia.com/cuda/nvgraph/index.html#nvgraph-sssp-example
 
+#include <algorithm>
 #include <memory>
 #include <stdio.h>
 #include <vector>
+
+float randomEdgeWeight() {
+    float f = (float)rand() / RAND_MAX;
+    return f * 5; // range from 0 -> 5
+}
+
+int randomNumberOfEdges(int nodes) {
+    int maxEdges = std::min(nodes / 2, 10); // max edges is n/2, cap at 10 edges
+    return rand() % maxEdges + 1; // [1, maxEdges]
+}
     
 struct CommandLineArgs {
 public:
@@ -68,6 +79,55 @@ struct GraphData
     size_t numEdges() const { return source_indices_h.size(); }
     
     void generateGraph(const CommandLineArgs& args) {
+        clearData();
+        
+        for (int destNode = 0; destNode < args.nodes; destNode++) {
+            // insert offset where edges to this node begin in source_indices_h
+            destination_offsets_h.push_back(source_indices_h.size());
+            
+            if (args.fullyConnectedGraph) {
+                for (int srcNode = 0; srcNode < args.nodes; srcNode++) {
+                    if (srcNode != destNode)
+                        addEdge(srcNode, randomEdgeWeight());
+                }
+            }
+            else {
+                int numEdges = randomNumberOfEdges(args.nodes);
+                for (int srcNode : getRandomEdgesFor(destNode, numEdges, args.nodes)) {
+                    addEdge(srcNode, randomEdgeWeight());
+                }
+            }
+        }
+        
+        destination_offsets_h.push_back(args.nodes);
+    }
+                                     
+    std::vector<int> getRandomEdgesFor(int node, int numEdges, int totalNodes) {
+        std::vector<int> edges;
+    
+        int srcNode;
+        for (; numEdges > 0; numEdges--) {
+            do {
+                srcNode = rand() % totalNodes;
+            }
+            while (srcNode != node && std::find(edges.begin(), edges.end(), srcNode) != edges.end());
+
+            edges.push_back(srcNode);
+        }
+    
+        return edges;
+    }
+    
+    // adds an edge from srcNode to the node that is currently being processed
+    void addEdge(int srcNode, float weight) {
+        source_indices_h.push_back(srcNode);
+        weights_h.push_back(weight);
+    }
+    
+    void clearData() {
+        weights_h.clear();
+        destination_offsets_h.clear();
+        source_indices_h.clear();
     }
     
     void printEdges() {
@@ -92,6 +152,9 @@ int main(int argc, const char* argv[])
     cudaDataType_t edge_dimT = CUDA_R_32F;
     
     GraphData graphData;
+    if (!args.useSampleData)
+        graphData.generateGraph(args);
+    
     std::cout << "Nodes: " << graphData.numNodes() << " Edges: " << graphData.numEdges() << std::endl;
 
     if (args.verbose)
