@@ -27,6 +27,17 @@ struct GraphData
     
     size_t numNodes() const { return destination_offsets_h.size() - 1; } // the final index is the number of edges
     size_t numEdges() const { return source_indices_h.size(); }
+    
+    void printEdges() {
+        std::printf("Edges:\n");
+        int destinationNode = 0;
+        for (int i = 0; i < numEdges(); i++) {
+            if (i == destination_offsets_h[destinationNode + 1]) {
+                destinationNode++;
+            }
+            std::printf("%d -> %d (%f)\n", source_indices_h[i], destinationNode, weights_h[i]);
+        }
+    }
 };
 
 int main()
@@ -37,6 +48,7 @@ int main()
     cudaDataType_t edge_dimT = CUDA_R_32F;
     
     GraphData graphData;
+    graphData.printEdges();
     
     // Init host data
     std::vector<float> sssp_1_h(graphData.numNodes());
@@ -68,6 +80,7 @@ int main()
     check(nvgraphGetVertexData(handle, graph, (void*)sssp_1_h.data(), 0));
     
     // print shortest distances
+    std::printf("\nShortest distance from 0:\n");
     for (int i = 0; i < sssp_1_h.size(); i++)
     {
         std::printf("%d: %f\n", i, sssp_1_h[i]);
