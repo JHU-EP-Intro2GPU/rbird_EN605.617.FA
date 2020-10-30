@@ -11,6 +11,31 @@
 #include <memory>
 #include <stdio.h>
 #include <vector>
+    
+struct CommandLineArgs {
+public:
+    CommandLineArgs(int argc, const char* argv[]) {
+        for (int i = 1; i < argc; i++) {
+            const char* arg = argv[i];
+            if (strcmp(arg, "--nodes") == 0) {
+                nodes = atoi(argv[++i]);
+                useSampleData = false;
+            }
+            else if (strcmp(arg, "--connected") == 0) {
+                fullyConnectedGraph = true;
+            }
+            else if (strcmp(arg, "--verbose") == 0) {
+                verbose = true;
+            }
+        }
+    }
+
+    bool useSampleData = true;
+    int nodes = 0;
+    bool fullyConnectedGraph = false;
+    
+    bool verbose = false;
+};
 
 void check(nvgraphStatus_t status) {
     if (status != NVGRAPH_STATUS_SUCCESS) {
@@ -42,6 +67,9 @@ struct GraphData
     size_t numNodes() const { return destination_offsets_h.size() - 1; } // the final index is the number of edges
     size_t numEdges() const { return source_indices_h.size(); }
     
+    void generateGraph(const CommandLineArgs& args) {
+    }
+    
     void printEdges() {
         std::printf("Edges:\n");
         int destinationNode = 0;
@@ -54,15 +82,20 @@ struct GraphData
     }
 };
 
-int main()
-{    
+int main(int argc, const char* argv[])
+{
+    CommandLineArgs args(argc, argv);
+    
     // nvgraph variables
     nvgraphHandle_t handle;
     nvgraphGraphDescr_t graph;
     cudaDataType_t edge_dimT = CUDA_R_32F;
     
     GraphData graphData;
-    graphData.printEdges();
+    std::cout << "Nodes: " << graphData.numNodes() << " Edges: " << graphData.numEdges() << std::endl;
+
+    if (args.verbose)
+        graphData.printEdges();
     
     // Init host data
     std::vector<float> sssp_1_h(graphData.numNodes());
@@ -87,7 +120,7 @@ int main()
         check(nvgraphAllocateEdgeData(handle, graph, 1, &edge_dimT));
         check(nvgraphSetEdgeData(handle, graph, (void*)graphData.weights_h.data(), 0));
     }
-    
+        
     // Solve
     int source_vert = 0;
     {
@@ -98,11 +131,13 @@ int main()
     // Get and print result
     check(nvgraphGetVertexData(handle, graph, (void*)sssp_1_h.data(), 0));
     
-    // print shortest distances
-    std::printf("\nShortest distance from 0:\n");
-    for (int i = 0; i < sssp_1_h.size(); i++)
-    {
-        std::printf("%d: %f\n", i, sssp_1_h[i]);
+    if (args.verbose) {
+        // print shortest distances
+        std::printf("\nShortest distance from 0:\n");
+        for (int i = 0; i < sssp_1_h.size(); i++)
+        {
+            std::printf("%d: %f\n", i, sssp_1_h[i]);
+        }
     }
     
     //Clean 
