@@ -18,6 +18,19 @@ void check(nvgraphStatus_t status) {
     }
 }
 
+/** Sample graph visualization (as best I can with text)
+
+                 0
+              //   \
+              2 --> 1
+              \
+               4 == 3
+                \  //
+                  5
+
+Run the program to see the exact weights. I have verified the correctness
+Of the library's outputs with the current data and modified data.
+*/
 struct GraphData
 {
     // sample data converted to stl containers
