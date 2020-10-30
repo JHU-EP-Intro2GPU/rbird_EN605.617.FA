@@ -3,6 +3,7 @@
 #include "device_launch_parameters.h"
 
 #include "nvgraph.h"
+#include "assignment.h"
 
 // starting point:
 // Nvidia example, https://docs.nvidia.com/cuda/nvgraph/index.html#nvgraph-sssp-example
@@ -71,23 +72,28 @@ int main()
     
     nvgraphCSCTopology32I_t CSC_input = (nvgraphCSCTopology32I_t)malloc(sizeof(struct nvgraphCSCTopology32I_st));
     
+    {
+        TimeCodeBlockCuda dataCreationAndTransfer("\nGraph initialization and data transfer");
+        check(nvgraphCreate(&handle));
+        check(nvgraphCreateGraphDescr(handle, &graph));
+        CSC_input->nvertices = graphData.numNodes();
+        CSC_input->nedges = graphData.numEdges();
+        CSC_input->destination_offsets = graphData.destination_offsets_h.data();
+        CSC_input->source_indices = graphData.source_indices_h.data();
     
-    check(nvgraphCreate(&handle));
-    check(nvgraphCreateGraphDescr(handle, &graph));
-    CSC_input->nvertices = graphData.numNodes();
-    CSC_input->nedges = graphData.numEdges();
-    CSC_input->destination_offsets = graphData.destination_offsets_h.data();
-    CSC_input->source_indices = graphData.source_indices_h.data();
-    
-    // Set graph connectivity and properties (tranfers)
-    check(nvgraphSetGraphStructure(handle, graph, (void*)CSC_input, NVGRAPH_CSC_32));
-    check(nvgraphAllocateVertexData(handle, graph, vertex_dimT.size(), vertex_dimT.data()));
-    check(nvgraphAllocateEdgeData(handle, graph, 1, &edge_dimT));
-    check(nvgraphSetEdgeData(handle, graph, (void*)graphData.weights_h.data(), 0));
+        // Set graph connectivity and properties (tranfers)
+        check(nvgraphSetGraphStructure(handle, graph, (void*)CSC_input, NVGRAPH_CSC_32));
+        check(nvgraphAllocateVertexData(handle, graph, vertex_dimT.size(), vertex_dimT.data()));
+        check(nvgraphAllocateEdgeData(handle, graph, 1, &edge_dimT));
+        check(nvgraphSetEdgeData(handle, graph, (void*)graphData.weights_h.data(), 0));
+    }
     
     // Solve
     int source_vert = 0;
-    check(nvgraphSssp(handle, graph, 0, &source_vert, 0));
+    {
+        TimeCodeBlockCuda shortestPathsCalculation("Shortest Paths Calculation");
+        check(nvgraphSssp(handle, graph, 0, &source_vert, 0));
+    }
     
     // Get and print result
     check(nvgraphGetVertexData(handle, graph, (void*)sssp_1_h.data(), 0));
