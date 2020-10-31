@@ -31,6 +31,31 @@
 #include <helper_string.h>
 #include <helper_cuda.h>
 
+    void
+    saveImage(const std::string &rFileName, const npp::ImageCPU_8u_C3 &rImage)
+    {
+        // create the result image storage using FreeImage so we can easily
+        // save
+        FIBITMAP *pResultBitmap = FreeImage_Allocate(rImage.width(), rImage.height(), 24 /* bits per pixel, 8 bits, 3 channels */);
+        NPP_ASSERT_NOT_NULL(pResultBitmap);
+        unsigned int nDstPitch   = FreeImage_GetPitch(pResultBitmap);
+        Npp8u *pDstLine = FreeImage_GetBits(pResultBitmap) + nDstPitch * (rImage.height()-1);
+        const Npp8u *pSrcLine = rImage.data();
+        unsigned int nSrcPitch = rImage.pitch();
+
+        for (size_t iLine = 0; iLine < rImage.height(); ++iLine)
+        {
+            memcpy(pDstLine, pSrcLine, rImage.width() * (3 * sizeof(Npp8u)));
+            pSrcLine += nSrcPitch;
+            pDstLine -= nDstPitch;
+        }
+
+        // now save the result image
+        bool bSuccess;
+        bSuccess = FreeImage_Save(FIF_PGM, pResultBitmap, rFileName.c_str(), 0) == TRUE;
+        NPP_ASSERT_MSG(bSuccess, "Failed to save result image.");
+    }
+
 inline int cudaDeviceInit(int argc, const char **argv)
 {
     int deviceCount;
@@ -165,15 +190,12 @@ int main(int argc, char *argv[])
         oSizeROI.x = 0;
         oSizeROI.y = 0;
     
-        // TODO: for whatever reason, we cannot go much bigger than the height/width. I am not sure what
-       // the image being produced actually is from the src image. I have played around with the step value and did
-       // not get better results. Nvidia documentation/help was not very helpful to debug this problem.
     
-        oSizeROI.width = 256;//(int)oDeviceSrc.width();
-        oSizeROI.height = 256; //(int)oDeviceSrc.height();
+        oSizeROI.width = (int)oDeviceSrc.width();
+        oSizeROI.height = (int)oDeviceSrc.height();
 
         // allocate device image of appropriately reduced size
-        npp::ImageNPP_8u_C1 oDeviceDst(oDeviceSrc.width(), oDeviceSrc.height());
+        npp::ImageNPP_8u_C3 oDeviceDst(oDeviceSrc.width(), oDeviceSrc.height());
 
         // run debayer color filter
 
@@ -191,7 +213,7 @@ int main(int argc, char *argv[])
         );
 
         // declare a host image for the result
-        npp::ImageCPU_8u_C1 oHostDst(oDeviceDst.size());
+        npp::ImageCPU_8u_C3 oHostDst(oDeviceDst.size());
         // and copy the device result data into it
         oDeviceDst.copyTo(oHostDst.data(), oHostDst.pitch());
 
