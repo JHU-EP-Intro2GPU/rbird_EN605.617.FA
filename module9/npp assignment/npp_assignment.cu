@@ -164,11 +164,16 @@ int main(int argc, char *argv[])
         NppiRect oSizeROI;
         oSizeROI.x = 0;
         oSizeROI.y = 0;
-        oSizeROI.width = 160;//(int)oDeviceSrc.width();
-        oSizeROI.height = 160; //(int)oDeviceSrc.height();
+    
+        // TODO: for whatever reason, we cannot go much bigger than the height/width. I am not sure what
+       // the image being produced actually is from the src image. I have played around with the step value and did
+       // not get better results. Nvidia documentation/help was not very helpful to debug this problem.
+    
+        oSizeROI.width = 256;//(int)oDeviceSrc.width();
+        oSizeROI.height = 256; //(int)oDeviceSrc.height();
 
         // allocate device image of appropriately reduced size
-        npp::ImageNPP_8u_C1 oDeviceDst(oSizeROI.width, oSizeROI.height);
+        npp::ImageNPP_8u_C1 oDeviceDst(oDeviceSrc.width(), oDeviceSrc.height());
 
         // run debayer color filter
 
@@ -181,7 +186,7 @@ int main(int argc, char *argv[])
         NPP_CHECK_NPP(
             nppiCFAToRGB_8u_C1C3R(
                 oDeviceSrc.data(), oDeviceSrc.pitch(), oSrcSize, oSizeROI,
-                oDeviceDst.data(), oDeviceDst.pitch(), NPPI_BAYER_BGGR, NPPI_INTER_UNDEFINED
+                oDeviceDst.data(), oDeviceDst.pitch(), NPPI_BAYER_GRBG, NPPI_INTER_UNDEFINED
             )
         );
 
