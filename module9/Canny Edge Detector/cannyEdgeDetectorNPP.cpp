@@ -47,6 +47,59 @@
 #include <helper_cuda.h>
 #include <helper_string.h>
 
+
+namespace npp
+{
+    void
+    loadImage(const std::string &rFileName, ImageCPU_8u_C3 &rImage)
+    {
+        // set your own FreeImage error handler
+        FreeImage_SetOutputMessage(FreeImageErrorHandler);
+
+        FREE_IMAGE_FORMAT eFormat = FreeImage_GetFileType(rFileName.c_str());
+
+        // no signature? try to guess the file format from the file extension
+        if (eFormat == FIF_UNKNOWN)
+        {
+            eFormat = FreeImage_GetFIFFromFilename(rFileName.c_str());
+        }
+
+        NPP_ASSERT(eFormat != FIF_UNKNOWN);
+        // check that the plugin has reading capabilities ...
+        FIBITMAP *pBitmap;
+
+        if (FreeImage_FIFSupportsReading(eFormat))
+        {
+            pBitmap = FreeImage_Load(eFormat, rFileName.c_str());
+        }
+
+        NPP_ASSERT(pBitmap != 0);
+        // make sure this is an 8-bit single channel image
+        NPP_ASSERT(FreeImage_GetColorType(pBitmap) == FIC_RGB);
+        NPP_ASSERT(FreeImage_GetBPP(pBitmap) == 24);
+
+        // create an ImageCPU to receive the loaded image data
+        ImageCPU_8u_C3 oImage(FreeImage_GetWidth(pBitmap), FreeImage_GetHeight(pBitmap));
+
+        // Copy the FreeImage data into the new ImageCPU
+        unsigned int nSrcPitch = FreeImage_GetPitch(pBitmap);
+        const Npp8u *pSrcLine = FreeImage_GetBits(pBitmap) + nSrcPitch * (FreeImage_GetHeight(pBitmap) -1);
+        Npp8u *pDstLine = oImage.data();
+        unsigned int nDstPitch = oImage.pitch();
+
+        for (size_t iLine = 0; iLine < oImage.height(); ++iLine)
+        {
+            memcpy(pDstLine, pSrcLine, oImage.width() * (sizeof(Npp8u)* 3));
+            pSrcLine -= nSrcPitch;
+            pDstLine += nDstPitch;
+        }
+
+        // swap the user given image with our result image, effecively
+        // moving our newly loaded image data into the user provided shell
+        oImage.swap(rImage);
+    }
+}
+
 inline int cudaDeviceInit(int argc, const char **argv) {
   int deviceCount;
   checkCudaErrors(cudaGetDeviceCount(&deviceCount));
@@ -100,6 +153,11 @@ int main(int argc, char *argv[]) {
     if (printfNPPinfo(argc, argv) == false) {
       exit(EXIT_SUCCESS);
     }
+      
+    bool isColorImage = false;
+    if (checkCmdLineFlag(argc, (const char **)argv, "color")) {
+        isColorImage = true;
+    }
 
     if (checkCmdLineFlag(argc, (const char **)argv, "input")) {
       getCmdLineArgumentString(argc, (const char **)argv, "input", &filePath);
@@ -151,13 +209,35 @@ int main(int argc, char *argv[]) {
       sResultFilename = outputFilePath;
     }
 
-    // declare a host image object for an 8-bit grayscale image
-    npp::ImageCPU_8u_C1 oHostSrc;
-    // load gray-scale image from disk
-    npp::loadImage(sFilename, oHostSrc);
+
     // declare a device image and copy construct from the host image,
     // i.e. upload host to device
-    npp::ImageNPP_8u_C1 oDeviceSrc(oHostSrc);
+    npp::ImageNPP_8u_C1 oDeviceSrc;
+    
+      // TODO: Use correct image types for color image (channel 3)
+    if (isColorImage) {
+        npp::ImageCPU_8u_C3 colorImage;
+        npp::loadImage(sFilename, colorImage);
+        
+        npp::ImageNPP_8u_C3 deviceColorImage(colorImage);
+        oDeviceSrc = npp::ImageNPP_8u_C1(colorImage.width(), colorImage.height());
+        
+        // convert color image to grayscale
+        NppiSize colorImageROI = {(int)deviceColorImage.width(), (int)deviceColorImage.height()};
+        NPP_CHECK_NPP(nppiRGBToGray_8u_C3C1R(
+            deviceColorImage.data(), deviceColorImage.pitch(),
+            oDeviceSrc.data(), oDeviceSrc.pitch(), colorImageROI
+        ));
+
+    }
+    else {
+        // declare a host image object for an 8-bit grayscale image
+        npp::ImageCPU_8u_C1 oHostSrc;
+        // load gray-scale image from disk
+        npp::loadImage(sFilename, oHostSrc);
+        oDeviceSrc = npp::ImageNPP_8u_C1(oHostSrc);
+    }
+    
 
     NppiSize oSrcSize = {(int)oDeviceSrc.width(), (int)oDeviceSrc.height()};
     NppiPoint oSrcOffset = {0, 0};
@@ -190,6 +270,14 @@ int main(int argc, char *argv[]) {
     Npp16s nHighThreshold = 256;
 
     if ((nBufferSize > 0) && (pScratchBufferNPP != 0)) {
+        // If color image, convert to greyscale
+        if (isColorImage) {
+            NPP_CHECK_NPP(nppiRGBToGray_8u_C3C1R(
+                oDeviceSrc.data(), oDeviceSrc.pitch(),
+                oDeviceSrc.data(), oDeviceSrc.pitch(), oSizeROI
+            ));
+        }        
+        
       NPP_CHECK_NPP(nppiFilterCannyBorder_8u_C1R(
           oDeviceSrc.data(), oDeviceSrc.pitch(), oSrcSize, oSrcOffset,
           oDeviceDst.data(), oDeviceDst.pitch(), oSizeROI, NPP_FILTER_SOBEL,
