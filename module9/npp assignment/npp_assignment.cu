@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
             sResultFilename = sResultFilename.substr(0, dot);
         }
 
-        sResultFilename += "_boxFilter.pgm";
+        sResultFilename += "_debayerFilter.pgm";
 
         if (checkCmdLineFlag(argc, (const char **)argv, "output"))
         {
@@ -149,28 +149,35 @@ int main(int argc, char *argv[])
         npp::ImageCPU_8u_C1 oHostSrc;
         // load gray-scale image from disk
         npp::loadImage(sFilename, oHostSrc);
+
         // declare a device image and copy construct from the host image,
         // i.e. upload host to device
         npp::ImageNPP_8u_C1 oDeviceSrc(oHostSrc);
 
         // create struct with box-filter mask size
-        NppiSize oMaskSize = {5, 5};
 
-        NppiSize oSrcSize = {(int)oDeviceSrc.width(), (int)oDeviceSrc.height()};
-        NppiPoint oSrcOffset = {0, 0};
+        NppiSize oSrcSize;
+        oSrcSize.width = (int)oDeviceSrc.width();
+        oSrcSize.height = (int)oDeviceSrc.height();
 
         // create struct with ROI size
-        NppiRect oSizeROI = {(int)oDeviceSrc.width() , (int)oDeviceSrc.height() };
+        NppiRect oSizeROI;
+        oSizeROI.x = 0;
+        oSizeROI.y = 0;
+        oSizeROI.width = 160;//(int)oDeviceSrc.width();
+        oSizeROI.height = 160; //(int)oDeviceSrc.height();
+
         // allocate device image of appropriately reduced size
         npp::ImageNPP_8u_C1 oDeviceDst(oSizeROI.width, oSizeROI.height);
-        // set anchor point inside the mask to (oMaskSize.width / 2, oMaskSize.height / 2)
-        // It should round down when odd
-        NppiPoint oAnchor = {oMaskSize.width / 2, oMaskSize.height / 2};
 
-        // run box filter
+        // run debayer color filter
 
         //eInterpolation	MUST be NPPI_INTER_UNDEFINED
         // https://docs.nvidia.com/cuda/npp/group__image__color__debayer.html
+        std::printf("src pitch: %d destPitch: %d\n", oDeviceSrc.pitch(), oDeviceDst.pitch());
+        std::printf("src size height: %d width: %d\n", oSrcSize.height, oSrcSize.width);
+        std::printf("dst size height: %d width: %d\n", oDeviceDst.height(), oDeviceDst.width());
+        std::printf("roi height: %d width: %d\n", oSizeROI.height, oSizeROI.width);
         NPP_CHECK_NPP(
             nppiCFAToRGB_8u_C1C3R(
                 oDeviceSrc.data(), oDeviceSrc.pitch(), oSrcSize, oSizeROI,
