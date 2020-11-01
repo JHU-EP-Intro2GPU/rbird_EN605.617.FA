@@ -1,6 +1,7 @@
 Submitted work in directories:
 npp assignment
-vngraph assignment
+nvgraph assignment
 thrust assignment
+Canny Edge Detector
 
 Each directory has its own README for specific details
