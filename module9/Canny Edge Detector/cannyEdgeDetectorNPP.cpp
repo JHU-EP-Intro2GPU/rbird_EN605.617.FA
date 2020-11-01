@@ -216,21 +216,23 @@ int main(int argc, char *argv[]) {
     // i.e. upload host to device
     npp::ImageNPP_8u_C1 oDeviceSrc;
     TimeCodeBlockCuda wholeProcess("Entire process");
-      // TODO: Use correct image types for color image (channel 3)
+
     if (isColorImage) {
         npp::ImageCPU_8u_C3 colorImage;
         npp::loadImage(sFilename, colorImage);
-        
+                
         npp::ImageNPP_8u_C3 deviceColorImage(colorImage);
         oDeviceSrc = npp::ImageNPP_8u_C1(colorImage.width(), colorImage.height());
         
         // convert color image to grayscale
         NppiSize colorImageROI = {(int)deviceColorImage.width(), (int)deviceColorImage.height()};
+        
+        TimeCodeBlockCuda convertToGrayscale("Convert to gray scale");
         NPP_CHECK_NPP(nppiRGBToGray_8u_C3C1R(
             deviceColorImage.data(), deviceColorImage.pitch(),
             oDeviceSrc.data(), oDeviceSrc.pitch(), colorImageROI
         ));
-
+        
     }
     else {
         // declare a host image object for an 8-bit grayscale image
@@ -275,13 +277,6 @@ int main(int argc, char *argv[]) {
     if ((nBufferSize > 0) && (pScratchBufferNPP != 0)) {
         TimeCodeBlockCuda findEdges("Find edges");
         // If color image, convert to greyscale
-        if (isColorImage) {
-            TimeCodeBlockCuda convertToGrayscale("Convert to gray scale");
-            NPP_CHECK_NPP(nppiRGBToGray_8u_C3C1R(
-                oDeviceSrc.data(), oDeviceSrc.pitch(),
-                oDeviceSrc.data(), oDeviceSrc.pitch(), oSizeROI
-            ));
-        }        
         
       NPP_CHECK_NPP(nppiFilterCannyBorder_8u_C1R(
           oDeviceSrc.data(), oDeviceSrc.pitch(), oSrcSize, oSrcOffset,
