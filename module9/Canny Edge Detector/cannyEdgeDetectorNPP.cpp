@@ -47,6 +47,8 @@
 #include <helper_cuda.h>
 #include <helper_string.h>
 
+#include "assignment.h"
+
 
 namespace npp
 {
@@ -213,7 +215,7 @@ int main(int argc, char *argv[]) {
     // declare a device image and copy construct from the host image,
     // i.e. upload host to device
     npp::ImageNPP_8u_C1 oDeviceSrc;
-    
+    TimeCodeBlockCuda wholeProcess("Entire process");
       // TODO: Use correct image types for color image (channel 3)
     if (isColorImage) {
         npp::ImageCPU_8u_C3 colorImage;
@@ -269,9 +271,12 @@ int main(int argc, char *argv[]) {
     Npp16s nLowThreshold = 72;
     Npp16s nHighThreshold = 256;
 
+    std::printf("Image size: %d x %d\n", oSrcSize.height, oSrcSize.width);
     if ((nBufferSize > 0) && (pScratchBufferNPP != 0)) {
+        TimeCodeBlockCuda findEdges("Find edges");
         // If color image, convert to greyscale
         if (isColorImage) {
+            TimeCodeBlockCuda convertToGrayscale("Convert to gray scale");
             NPP_CHECK_NPP(nppiRGBToGray_8u_C3C1R(
                 oDeviceSrc.data(), oDeviceSrc.pitch(),
                 oDeviceSrc.data(), oDeviceSrc.pitch(), oSizeROI
@@ -299,7 +304,6 @@ int main(int argc, char *argv[]) {
     nppiFree(oDeviceSrc.data());
     nppiFree(oDeviceDst.data());
 
-    exit(EXIT_SUCCESS);
   } catch (npp::Exception &rException) {
     std::cerr << "Program error! The following exception occurred: \n";
     std::cerr << rException << std::endl;
