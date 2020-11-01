@@ -31,6 +31,8 @@
 #include <helper_string.h>
 #include <helper_cuda.h>
 
+#include "assignment.h"
+
     void
     saveImage(const std::string &rFileName, const npp::ImageCPU_8u_C3 &rImage)
     {
@@ -169,6 +171,8 @@ int main(int argc, char *argv[])
             getCmdLineArgumentString(argc, (const char **)argv, "output", &outputFilePath);
             sResultFilename = outputFilePath;
         }
+    
+        TimeCodeBlockCuda processRuntime("Entire process");
 
         // declare a host image object for an 8-bit grayscale image
         npp::ImageCPU_8u_C1 oHostSrc;
@@ -205,12 +209,16 @@ int main(int argc, char *argv[])
         std::printf("src size height: %d width: %d\n", oSrcSize.height, oSrcSize.width);
         std::printf("dst size height: %d width: %d\n", oDeviceDst.height(), oDeviceDst.width());
         std::printf("roi height: %d width: %d\n", oSizeROI.height, oSizeROI.width);
-        NPP_CHECK_NPP(
-            nppiCFAToRGB_8u_C1C3R(
-                oDeviceSrc.data(), oDeviceSrc.pitch(), oSrcSize, oSizeROI,
-                oDeviceDst.data(), oDeviceDst.pitch(), NPPI_BAYER_GRBG, NPPI_INTER_UNDEFINED
-            )
-        );
+        
+        {
+            TimeCodeBlockCuda conversion("Grayscale conversion");
+            NPP_CHECK_NPP(
+                nppiCFAToRGB_8u_C1C3R(
+                    oDeviceSrc.data(), oDeviceSrc.pitch(), oSrcSize, oSizeROI,
+                    oDeviceDst.data(), oDeviceDst.pitch(), NPPI_BAYER_GRBG, NPPI_INTER_UNDEFINED
+                )
+            );
+        }
 
         // declare a host image for the result
         npp::ImageCPU_8u_C3 oHostDst(oDeviceDst.size());
@@ -222,8 +230,6 @@ int main(int argc, char *argv[])
 
         nppiFree(oDeviceSrc.data());
         nppiFree(oDeviceDst.data());
-
-        exit(EXIT_SUCCESS);
     }
     catch (npp::Exception &rException)
     {
