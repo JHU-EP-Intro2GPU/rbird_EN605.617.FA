@@ -14,6 +14,7 @@
 #include "ExampleHelperFunctions.h"
 
 #include <memory>
+#include <cstring>
 #include <vector>
 
 struct CommandLineParameters
