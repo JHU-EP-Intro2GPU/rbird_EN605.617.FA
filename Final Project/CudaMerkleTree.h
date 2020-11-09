@@ -12,5 +12,7 @@ struct SHA256Digest {
     uint32_t h0, h1, h2, h3, h4, h5, h6, h7;
 };
 
+__global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Digest* output);
+
 #endif // !CUDA_MERKLE_TREE_H
 
