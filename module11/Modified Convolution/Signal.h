@@ -8,6 +8,8 @@
 #include <CL/cl.h>
 #endif
 
+#include <random>
+
 template<int SIGNALHEIGHT, int SIGNALWIDTH, int MASKHEIGHT, int MASKWIDTH>
 struct Signal {
 public:
@@ -23,7 +25,31 @@ public:
 				mask[r][c] = 1;
 			}
 		}
+	}
 
+	// maskProbability: the chance that a particular mask cell will be set. Range: [0.00, 1.00]
+	void populateRandomData(int min, int max, float maskProbability) {
+		srand(time(NULL));
+
+		const int range = max - min;
+
+		for (int r = 0; r < inputSignalHeight; r++) {
+			for (int c = 0; c < inputSignalWidth; c++) {
+				inputSignal[r][c] = (rand() % range) + min;
+			}
+		}
+
+		const int percentAsInt = maskProbability * 100;
+		for (int r = 0; r < maskHeight; r++) {
+			for (int c = 0; c < maskWidth; c++) {
+				if ((rand() % 100) < percentAsInt) {
+					mask[r][c] = 1;
+				}
+				else {
+					mask[r][c] = 0;
+				}
+			}
+		}
 	}
 
 	const unsigned int inputSignalHeight = SIGNALHEIGHT;

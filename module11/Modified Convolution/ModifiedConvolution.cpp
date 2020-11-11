@@ -41,6 +41,18 @@ public:
 			if (strcmp(arg, "--debug") == 0) {
 				debug = true;
 			}
+			else if (strcmp(arg, "--random") == 0) {
+				random = true;
+			}
+			else if (strcmp(arg, "--min") == 0) {
+				signalMin = atoi(argv[++i]);
+			}
+			else if (strcmp(arg, "--max") == 0) {
+				signalMax = atoi(argv[++i]);
+			}
+			else if (strcmp(arg, "--maskProbability") == 0) {
+				maskProbability = atof(argv[++i]);
+			}
 		}
 	}
 
@@ -53,6 +65,7 @@ public:
 
 	// the chance that a particular cell will be enabled in the mask
 	float maskProbability = 0.4;
+	bool random = false;
 	bool debug = false;
 };
 
@@ -61,16 +74,6 @@ Signal<8, 8, 3, 3> smallSignal;
 // 49x49 input, 7x7 mask
 Signal<49, 49, 7, 7> largeSignal;
 
-
-cl_float maskGradient[7][7] = {
-	{ 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25},
-	{ 0.25, 0.50, 0.50, 0.50, 0.50, 0.50, 0.25},
-	{ 0.25, 0.50, 0.75, 0.75, 0.75, 0.50, 0.25},
-	{ 0.25, 0.50, 0.75, 1.00, 0.75, 0.50, 0.25},
-	{ 0.25, 0.50, 0.75, 0.75, 0.75, 0.50, 0.25},
-	{ 0.25, 0.50, 0.50, 0.50, 0.50, 0.50, 0.25},
-	{ 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25}
-};
 
 // Host side debugging
 float gradientValue(int r, int c, int maskHeight, int maskWidth) {
@@ -416,8 +419,14 @@ int main(int argc, const char* argv[])
 {
 	CommandLineArguments args(argc, argv);
 
-	populateDefaultSmallSignal();
-	largeSignal.populateData();
+	if (args.random) {
+		smallSignal.populateRandomData(args.signalMin, args.signalMax, args.maskProbability);
+		largeSignal.populateRandomData(args.signalMin, args.signalMax, args.maskProbability);
+	}
+	else {
+		populateDefaultSmallSignal();
+		largeSignal.populateData();
+	}
 
 	std::printf("The first kernel run contains overhead to initialize OpenCL. Ignore this first output.\n");
 	testConvolution(args, smallSignal);
