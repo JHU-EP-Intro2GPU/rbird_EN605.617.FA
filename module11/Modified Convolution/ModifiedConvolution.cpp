@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "TimeBlock.h"
 #include "Signal.h"
 
 #ifdef __APPLE__
@@ -287,6 +288,17 @@ void runConvolution(const CommandLineArguments& args, T& signal) {
 		NULL,
 		NULL);
 	checkErr(errNum, "clEnqueueReadBuffer");
+}
+
+template<class T>
+void testConvolution(const CommandLineArguments& args, T& signal)
+{
+	{
+		char blockName[1000];
+		sprintf(blockName, "Total Run %d x %d", signal.inputSignalWidth, signal.inputSignalHeight);
+		TimeCodeBlock totalProcess(blockName);
+		runConvolution(args, signal);
+	}
 
 	int maskMidRow = signal.maskHeight / 2;
 	int maskMidCol = signal.maskWidth / 2;
@@ -308,6 +320,7 @@ void runConvolution(const CommandLineArguments& args, T& signal) {
 	std::printf("\n");
 
 	if (args.debug) {
+		// output the expected computation of output[0][0]
 		int maskSum = 0;
 		for (int r = 0; r < signal.maskHeight; r++) {
 			int rowSum = 0;
@@ -321,19 +334,18 @@ void runConvolution(const CommandLineArguments& args, T& signal) {
 			maskSum += rowSum;
 			std::printf("= %d,\t%d\n", rowSum, maskSum);
 		}
-	}
 
-
-
-	// Output the result buffer
-	for (int y = 0; y < signal.outputSignalHeight; y++)
-	{
-		for (int x = 0; x < signal.outputSignalWidth; x++)
+		// Output the result buffer
+		for (int y = 0; y < signal.outputSignalHeight; y++)
 		{
-			std::cout << signal.outputSignal[y][x] << " ";
+			for (int x = 0; x < signal.outputSignalWidth; x++)
+			{
+				std::cout << signal.outputSignal[y][x] << " ";
+			}
+			std::cout << std::endl;
 		}
-		std::cout << std::endl;
 	}
+
 }
 
 void populateDefaultSmallSignal() {
@@ -375,8 +387,10 @@ int main(int argc, const char* argv[])
 	populateDefaultSmallSignal();
 	largeSignal.populateData();
 
-	runConvolution(args, smallSignal);
-	runConvolution(args, largeSignal);
+	std::printf("The first kernel run contains overhead to initialize OpenCL. Ignore this first output.\n");
+	testConvolution(args, smallSignal);
+	testConvolution(args, smallSignal);
+	testConvolution(args, largeSignal);
 
     std::cout << std::endl << "Executed program succesfully." << std::endl;
 
