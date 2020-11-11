@@ -36,6 +36,12 @@
 struct CommandLineArguments {
 public:
 	CommandLineArguments(int argc, const char* argv[]) {
+		for (int i = 1; i < argc; i++) {
+			const char* arg = argv[i];
+			if (strcmp(arg, "--debug") == 0) {
+				debug = true;
+			}
+		}
 	}
 
 	int signalRange() {
@@ -65,6 +71,41 @@ cl_float maskGradient[7][7] = {
 	{ 0.25, 0.50, 0.50, 0.50, 0.50, 0.50, 0.25},
 	{ 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25}
 };
+
+// Host side debugging
+float gradientValue(int r, int c, int maskHeight, int maskWidth) {
+	int maskMidRow = maskHeight / 2;
+	int maskMidCol = maskWidth / 2;
+
+	// no 'int' definitions of pow function
+	float rowDistance = pow((float)r - maskMidRow, 2);
+	float colDistance = pow((float)c - maskMidCol, 2);
+	int distance = sqrt(rowDistance + colDistance);
+
+	float value = 1.0 - 0.25 * distance;
+
+	if (value < 0.25)
+		return 0.25;
+	else
+		return value;
+}
+
+void printGradients(int maskHeight, int maskWidth) {
+	std::printf("Distances/Gradients:\n");
+	for (int r = 0; r < maskHeight; r++) {
+		for (int c = 0; c < maskWidth; c++) {
+			if (c != 0)
+				std::printf(" ");
+
+			std::printf("%f", gradientValue(r, c, maskHeight, maskWidth));
+		}
+
+		std::printf("\n");
+	}
+
+	std::printf("\n");
+}
+
 
 ///
 // Function to check and handle OpenCL errors
@@ -300,35 +341,24 @@ void testConvolution(const CommandLineArguments& args, T& signal)
 		runConvolution(args, signal);
 	}
 
-	int maskMidRow = signal.maskHeight / 2;
-	int maskMidCol = signal.maskWidth / 2;
-
-	std::printf("Distances:\n");
-	for (int r = 0; r < signal.maskHeight; r++) {
-		int rowDistance = pow(r - maskMidRow, 2);
-		for (int c = 0; c < signal.maskWidth; c++) {
-			if (c != 0)
-				std::printf(" ");
-			int colDistance = pow(c - maskMidCol, 2);
-			int distance = sqrt(rowDistance + colDistance) + 1;
-			std::printf("%d", distance);
-		}
-
-		std::printf("\n");
-	}
-
-	std::printf("\n");
-
 	if (args.debug) {
+		printGradients(signal.maskHeight, signal.maskWidth);
+
 		// output the expected computation of output[0][0]
 		int maskSum = 0;
+		std::printf("\nExpected computation for output[0][0]:\n");
 		for (int r = 0; r < signal.maskHeight; r++) {
 			int rowSum = 0;
 			for (int c = 0; c < signal.maskWidth; c++) {
 				if (c != 0)
-					std::printf("+");
-				std::printf("%d ", signal.inputSignal[r][c]);
-				rowSum += signal.inputSignal[r][c];
+					std::printf("+ ");
+
+				int maskBit = signal.mask[r][c];
+				int value = signal.inputSignal[r][c];
+				float gradient = gradientValue(r, c, signal.maskHeight, signal.maskWidth);
+				int expectedValue = maskBit * value * gradient;
+				std::printf("(%d x %d x %f) ", maskBit, value, gradient);
+				rowSum += expectedValue;
 			}
 
 			maskSum += rowSum;
@@ -336,6 +366,7 @@ void testConvolution(const CommandLineArguments& args, T& signal)
 		}
 
 		// Output the result buffer
+		std::printf("\nOutput:\n");
 		for (int y = 0; y < signal.outputSignalHeight; y++)
 		{
 			for (int x = 0; x < signal.outputSignalWidth; x++)
@@ -344,6 +375,7 @@ void testConvolution(const CommandLineArguments& args, T& signal)
 			}
 			std::cout << std::endl;
 		}
+		std::printf("\n");
 	}
 
 }
