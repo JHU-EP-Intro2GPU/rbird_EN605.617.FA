@@ -14,6 +14,7 @@
 //    This is a simple example that demonstrates OpenCL platform, device, and context
 //    use.
 
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
