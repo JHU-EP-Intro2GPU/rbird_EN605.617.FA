@@ -13,25 +13,34 @@ void printDigest(const SHA256Digest& digest) {
     std::cout << std::endl;
 }
 
-int main(int argc, const char* argv[]) {
-
-    std::printf("Hello world!\n");
-
+HostAndDeviceMemory<uint8_t> readData() {
+    // Sample data
     uint64_t fileSizeInBytes = 64; // allocate 512 bits (1 chunk). 64 * 8 bits = 512 bits
     HostAndDeviceMemory<uint8_t> fileData;
     fileData.allocate(fileSizeInBytes);
 
+    std::printf("bytes: %d\n", fileSizeInBytes);
     for (int i = 0; i < fileSizeInBytes; i++) {
-        fileData.host()[i] = 0;
+        //fileData.host()[i] = 0;
+        fileData.host()[i] = (i == 0) ? 'b' : 'a';
+        std::printf("%c", fileData.host()[i]);
     }
+    std::printf("\n");
 
     fileData.transferToDevice();
+    return fileData;
+}
+
+int main(int argc, const char* argv[]) {
+
+    HostAndDeviceMemory<uint8_t> fileData = readData();
+
 
     HostAndDeviceMemory<SHA256Digest> messageDigest(1); // allocate 1 digest
 
     int blocks = 1;
     int threadsPerBlock = 1;
-    CreateHashes <<< blocks, threadsPerBlock >>> (fileData.device(), fileSizeInBytes, messageDigest.device());
+    CreateHashes <<< blocks, threadsPerBlock >>> (fileData.device(), fileData.size(), messageDigest.device());
     gpuErrchk(cudaGetLastError());
 
     messageDigest.transferToHost();
