@@ -123,6 +123,7 @@ int main(int argc, char** argv)
         checkErr(errNum, "clGetDeviceIDs");
     }       
 
+    std::printf("Num Devices on platform: %d\n", numDevices);
     deviceIDs = (cl_device_id *)alloca(sizeof(cl_device_id) * numDevices);
     errNum = clGetDeviceIDs(
         platformIDs[platform],
@@ -207,6 +208,7 @@ int main(int argc, char** argv)
                 NUM_BUFFER_ELEMENTS * i * sizeof(int), 
                 NUM_BUFFER_ELEMENTS * sizeof(int)
             };
+
         buffer = clCreateSubBuffer(
             buffers[0],
             CL_MEM_READ_WRITE,
@@ -311,6 +313,7 @@ int main(int argc, char** argv)
             0, 
             &event);
 
+        checkErr(errNum, "clEnqueueNDRangeKernel(..)");
         events.push_back(event);
     }
 
