@@ -26,6 +26,12 @@
 
 #define NUM_BUFFER_ELEMENTS 16
 
+#define BUFFER_HEIGHT 4
+const int BUFFER_WIDTH = 4;
+
+#define FILTER_HEIGHT 2
+#define FILTER_WIDTH 2
+
 // Function to check and handle OpenCL errors
 inline void 
 checkErr(cl_int err, const char * name)
@@ -124,6 +130,8 @@ int main(int argc, char** argv)
     }       
 
     std::printf("Num Devices on platform: %d\n", numDevices);
+    std::printf("Limiting program to 1 Device\n");
+    numDevices = 1;
     deviceIDs = (cl_device_id *)alloca(sizeof(cl_device_id) * numDevices);
     errNum = clGetDeviceIDs(
         platformIDs[platform],
@@ -200,24 +208,29 @@ int main(int argc, char** argv)
     checkErr(errNum, "clCreateBuffer");
     buffers.push_back(buffer);
 
-    // now for all devices other than the first create a sub-buffer
-    for (unsigned int i = 1; i < numDevices; i++)
+    // divide 4x4 buffer into 2x2 subbuffers
+    for (int row = 0; row < BUFFER_HEIGHT; row += FILTER_HEIGHT)
     {
-        cl_buffer_region region = 
+        for (int col = 0; col < BUFFER_WIDTH; col += FILTER_WIDTH) {
+            int offset = row * BUFFER_WIDTH + col;
+            // make this math simply by simply including the rest of the buffer
+            int numElements = NUM_BUFFER_ELEMENTS - offset;
+            cl_buffer_region region =
             {
-                NUM_BUFFER_ELEMENTS * i * sizeof(int), 
-                NUM_BUFFER_ELEMENTS * sizeof(int)
+                offset * sizeof(int),
+                numElements * sizeof(int)
             };
 
-        buffer = clCreateSubBuffer(
-            buffers[0],
-            CL_MEM_READ_WRITE,
-            CL_BUFFER_CREATE_TYPE_REGION,
-            &region,
-            &errNum);
-        checkErr(errNum, "clCreateSubBuffer");
+            buffer = clCreateSubBuffer(
+                buffers[0],
+                CL_MEM_READ_WRITE,
+                CL_BUFFER_CREATE_TYPE_REGION,
+                &region,
+                &errNum);
+            checkErr(errNum, "clCreateSubBuffer");
 
-        buffers.push_back(buffer);
+            buffers.push_back(buffer);
+        }
     }
 
     // Create command queues
@@ -237,15 +250,24 @@ int main(int argc, char** argv)
         checkErr(errNum, "clCreateCommandQueue");
 
         queues.push_back(queue);
+    }
 
+    // Create kernel for each sub buffer (index 0 is whole buffer)
+    for (unsigned int i = 1; i < buffers.size(); i++) {
         cl_kernel kernel = clCreateKernel(
             program,
-            "square",
+            "average2D",
             &errNum);
-        checkErr(errNum, "clCreateKernel(square)");
+        checkErr(errNum, "average2D(square)");
 
-        errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&buffers[i]);
-        checkErr(errNum, "clSetKernelArg(square)");
+        // set the input buffer
+        errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&buffers[i]);
+        // tell the kernel the buffer stride/width
+        errNum = clSetKernelArg(kernel, 1, sizeof(BUFFER_WIDTH), &BUFFER_WIDTH);
+        // allocate local memory
+        errNum = clSetKernelArg(kernel, 2, FILTER_HEIGHT * FILTER_WIDTH * sizeof(int), NULL);
+
+        checkErr(errNum, "average2D(square)");
 
         kernels.push_back(kernel);
     }
@@ -295,19 +317,21 @@ int main(int argc, char** argv)
     }
 
     std::vector<cl_event> events;
+
     // call kernel for each device
-    for (unsigned int i = 0; i < queues.size(); i++)
+    for (unsigned int i = 0; i < kernels.size(); i++)
     {
         cl_event event;
 
-        size_t gWI = NUM_BUFFER_ELEMENTS;
+        size_t globalDimensions[] = { FILTER_WIDTH, FILTER_HEIGHT };
 
+        // On my machine, my integrated GPU throws an error here. Use the command queue for CPU (index 0) for all work.
         errNum = clEnqueueNDRangeKernel(
-            queues[i], 
+            queues[0], 
             kernels[i], 
-            1, 
+            2, // 2D workspace
             NULL,
-            (const size_t*)&gWI, 
+            (const size_t*)&globalDimensions,
             (const size_t*)NULL, 
             0, 
             0, 
