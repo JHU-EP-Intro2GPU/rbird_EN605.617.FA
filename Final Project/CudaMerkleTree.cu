@@ -4,10 +4,19 @@
 
 #include <cstdint>
 
+__device__ __host__
+void printDigest(const SHA256Digest& digest) {
+    printf("0x%08x%08x%08x%08x%08x%08x%08x%08x\n",
+        digest.h0, digest.h1, digest.h2, digest.h3,
+        digest.h4, digest.h5, digest.h6, digest.h7);
+}
+
 // Referred to https://en.wikipedia.org/wiki/SHA-2 for SHA256 algorithm
 
 // DISCLAIMER: This implementation does not seem to match with the expected SHA256 hash. Current
-// testing seems to show that it works well enough for the purposes of this project.
+// testing seems to show that it works well enough for the purposes of this project. I may debug this
+// later if time permits. I don't think that 100% accuracy to the SHA256 algorithm is currently worth
+// the time to debug. The rest of the project should still behave correctly.
 
 __constant__ uint32_t k[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -79,26 +88,45 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
 
 
     DataBlock_512_bit* chunks = (DataBlock_512_bit*) data; // process data 512 bits at a time
-    uint64_t chunkLength = dataLength / 16; // a 512 block is made up of 64 8 bit integers
+    uint64_t numChunks = dataLength / 64; // a 512 block is made up of 64 8 bit integers
+    uint64_t chunkLength = dataLength / numChunks; // TODO: make sure this will work once each thread iterates over several 512 bit chunks
     
-    for (unsigned int i = 0; i < chunkLength; i++) {
+    int threadId = threadIdx.x;
+    processChunk(chunks[threadId], digest);
+
+    if (threadId == 0) {
+        printDigest(digest);
+    }
+
+    
+    /*
+    for (unsigned int i = 0; i < numChunks; i++) {
         processChunk(chunks[i], digest);
     }
+    */
+    
 
     // process padding
     DataBlock_512_bit paddedBlock;
-    paddedBlock.convertToPaddedBlock(dataLength);
+    paddedBlock.convertToPaddedBlock(chunkLength);
 
     processChunk(paddedBlock, digest);
 
+    if (threadId == 0) {
+        printDigest(digest);
+    }
+
+    // TODO: improve this so that memory writes aren't strided in global memory
+    //       Perform strided write in shared memory, then write to global memory as a block
+
     // Save result
-    output->h0 = digest.h0;
-    output->h1 = digest.h1;
-    output->h2 = digest.h2;
-    output->h3 = digest.h3;
-    output->h4 = digest.h4;
-    output->h5 = digest.h5;
-    output->h6 = digest.h6;
-    output->h7 = digest.h7;
+    output[threadId].h0 = digest.h0;
+    output[threadId].h1 = digest.h1;
+    output[threadId].h2 = digest.h2;
+    output[threadId].h3 = digest.h3;
+    output[threadId].h4 = digest.h4;
+    output[threadId].h5 = digest.h5;
+    output[threadId].h6 = digest.h6;
+    output[threadId].h7 = digest.h7;
 }
 

@@ -1,51 +1,29 @@
 
-#include <stdio.h>
-#include <iostream>
 #include <cstdint>
 
 #include "CudaHelper.h"
 #include "CudaMerkleTree.h"
 
-void printDigest(const SHA256Digest& digest) {
-    std::cout << "0x" << std::hex
-        << digest.h0 << digest.h1 << digest.h2 << digest.h3
-        << digest.h4 << digest.h5 << digest.h6 << digest.h7;
-    std::cout << std::endl;
-}
+#include "SampleTestData.h"
 
-HostAndDeviceMemory<uint8_t> readData() {
-    // Sample data
-    uint64_t fileSizeInBytes = 64; // allocate 512 bits (1 chunk). 64 * 8 bits = 512 bits
-    HostAndDeviceMemory<uint8_t> fileData;
-    fileData.allocate(fileSizeInBytes);
 
-    std::printf("bytes: %d\n", fileSizeInBytes);
-    for (int i = 0; i < fileSizeInBytes; i++) {
-        //fileData.host()[i] = 0;
-        fileData.host()[i] = (i == 0) ? 'b' : 'a';
-        std::printf("%c", fileData.host()[i]);
-    }
-    std::printf("\n");
-
-    fileData.transferToDevice();
-    return fileData;
-}
 
 int main(int argc, const char* argv[]) {
 
-    HostAndDeviceMemory<uint8_t> fileData = readData();
+    HostAndDeviceMemory<uint8_t> fileData = readData2Chunks();
 
 
-    HostAndDeviceMemory<SHA256Digest> messageDigest(1); // allocate 1 digest
+    HostAndDeviceMemory<SHA256Digest> messageDigest(2); // allocate 1 digest
 
     int blocks = 1;
-    int threadsPerBlock = 1;
+    int threadsPerBlock = messageDigest.size(); // TODO: this is not accurate long term
     CreateHashes <<< blocks, threadsPerBlock >>> (fileData.device(), fileData.size(), messageDigest.device());
     gpuErrchk(cudaGetLastError());
 
     messageDigest.transferToHost();
 
-    printDigest(messageDigest.host()[0]);
+    for (int i = 0; i < messageDigest.size(); i++)
+        printDigest(messageDigest.host()[i]);
 
 
     // this app can enforce an exact file size restriction in order to not deal with
