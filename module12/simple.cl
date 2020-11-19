@@ -19,12 +19,12 @@ __kernel void square(__global int* buffer)
 	buffer[id] = buffer[id] * buffer[id];
 }
 
-__kernel void average2D(__global int* buffer2D, int stride, __local int* sharedMem)
+__kernel void average2D(__global float* buffer2D, int stride, __local float* sharedMem)
 {
 	size_t x = get_global_id(0);
 	size_t y = get_global_id(1);
 	
-	size_t bufferIndex = y * stride + x;
+	size_t bufferIndex = x * stride + y;
 	size_t localIndex = x * get_global_size(0) + y;
 
 	int value = buffer2D[bufferIndex];
@@ -47,8 +47,13 @@ __kernel void average2D(__global int* buffer2D, int stride, __local int* sharedM
 		offset /= 2;
 	}
 
+	// clear out old memory for print readability
+	buffer2D[bufferIndex] = 0;
+
 	if (localIndex == 0) {
-		printf("Sum: %d\n", sharedMem[0]);
-		printf("Average: %f\n", ((float) sharedMem[0]) / localGroupSize);
+		printf("Sum: %f\n", sharedMem[0]);
+		printf("Average: %f\n\n", sharedMem[0] / localGroupSize);
+
+		buffer2D[bufferIndex] = sharedMem[0] / localGroupSize;
 	}
 }

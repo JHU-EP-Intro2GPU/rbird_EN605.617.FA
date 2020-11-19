@@ -24,13 +24,17 @@
 #define DEFAULT_PLATFORM 0
 #define DEFAULT_USE_MAP false
 
-#define NUM_BUFFER_ELEMENTS 16
 
-#define BUFFER_HEIGHT 4
+constexpr auto BUFFER_HEIGHT = 4;
 const int BUFFER_WIDTH = 4;
+
+#define NUM_BUFFER_ELEMENTS (BUFFER_HEIGHT * BUFFER_WIDTH)
 
 #define FILTER_HEIGHT 2
 #define FILTER_WIDTH 2
+
+static_assert(BUFFER_HEIGHT % FILTER_HEIGHT == 0, "Filter height does not divide evenly into 2D buffer");
+static_assert(BUFFER_WIDTH % FILTER_WIDTH == 0, "Filter width does not divide evenly into 2D buffer");
 
 // Function to check and handle OpenCL errors
 inline void 
@@ -39,6 +43,18 @@ checkErr(cl_int err, const char * name)
     if (err != CL_SUCCESS) {
         std::cerr << "ERROR: " <<  name << " (" << err << ")" << std::endl;
         exit(EXIT_FAILURE);
+    }
+}
+
+void print2DBuffer(float* values) {
+    for (int row = 0; row < BUFFER_HEIGHT; row++) {
+        for (int col = 0; col < BUFFER_WIDTH; col++) {
+            if (col != 0)
+                std::printf(" ");
+            std::printf("%f", values[row * BUFFER_WIDTH + col]);
+        }
+
+        std::printf("\n");
     }
 }
 
@@ -57,7 +73,7 @@ int main(int argc, char** argv)
     std::vector<cl_kernel> kernels;
     std::vector<cl_command_queue> queues;
     std::vector<cl_mem> buffers;
-    int * inputOutput;
+    float * inputOutput;
 
     int platform = DEFAULT_PLATFORM; 
     bool useMap  = DEFAULT_USE_MAP;
@@ -192,7 +208,7 @@ int main(int argc, char** argv)
     }
 
     // create buffers and sub-buffers
-    inputOutput = new int[NUM_BUFFER_ELEMENTS * numDevices];
+    inputOutput = new float[NUM_BUFFER_ELEMENTS * numDevices];
     for (unsigned int i = 0; i < NUM_BUFFER_ELEMENTS * numDevices; i++)
     {
         inputOutput[i] = i;
@@ -209,16 +225,15 @@ int main(int argc, char** argv)
     buffers.push_back(buffer);
 
     // divide 4x4 buffer into 2x2 subbuffers
-    for (int row = 0; row < BUFFER_HEIGHT; row += FILTER_HEIGHT)
-    {
+    for (int row = 0; row < BUFFER_HEIGHT; row += FILTER_HEIGHT) {
         for (int col = 0; col < BUFFER_WIDTH; col += FILTER_WIDTH) {
             int offset = row * BUFFER_WIDTH + col;
             // make this math simply by simply including the rest of the buffer
             int numElements = NUM_BUFFER_ELEMENTS - offset;
             cl_buffer_region region =
             {
-                offset * sizeof(int),
-                numElements * sizeof(int)
+                offset * sizeof(float),
+                numElements * sizeof(float)
             };
 
             buffer = clCreateSubBuffer(
@@ -265,7 +280,7 @@ int main(int argc, char** argv)
         // tell the kernel the buffer stride/width
         errNum = clSetKernelArg(kernel, 1, sizeof(BUFFER_WIDTH), &BUFFER_WIDTH);
         // allocate local memory
-        errNum = clSetKernelArg(kernel, 2, FILTER_HEIGHT * FILTER_WIDTH * sizeof(int), NULL);
+        errNum = clSetKernelArg(kernel, 2, FILTER_HEIGHT * FILTER_WIDTH * sizeof(float), NULL);
 
         checkErr(errNum, "average2D(square)");
 
@@ -317,6 +332,10 @@ int main(int argc, char** argv)
     }
 
     std::vector<cl_event> events;
+
+    std::printf("\n");
+    print2DBuffer(inputOutput);
+    std::printf("\n");
 
     // call kernel for each device
     for (unsigned int i = 0; i < kernels.size(); i++)
@@ -390,16 +409,8 @@ int main(int argc, char** argv)
             NULL);
     }
 
-    // Display output in rows
-    for (unsigned i = 0; i < numDevices; i++)
-    {
-        for (unsigned elems = i * NUM_BUFFER_ELEMENTS; elems < ((i+1) * NUM_BUFFER_ELEMENTS); elems++)
-        {
-            std::cout << " " << inputOutput[elems];
-        }
-
-        std::cout << std::endl;
-    }
+    std::printf("Averages:\n");
+    print2DBuffer(inputOutput);
 
     std::cout << "Program completed successfully" << std::endl;
 
