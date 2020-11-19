@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "info.hpp"
+#include "TimeBlock.h"
 
 #define DEFAULT_PLATFORM 0
 #define DEFAULT_USE_MAP false
@@ -77,6 +78,8 @@ int main(int argc, char** argv)
 
     int platform = DEFAULT_PLATFORM; 
     bool useMap  = DEFAULT_USE_MAP;
+
+    TimeCodeBlock programRuntime("Program runtime (runtime bloated by print statements)");
 
     std::cout << "Simple buffer and sub-buffer Example" << std::endl;
 
@@ -287,6 +290,8 @@ int main(int argc, char** argv)
         kernels.push_back(kernel);
     }
 
+    TimeCodeBlock* kernelLifeCycle = new TimeCodeBlock("Copy to device until copy from device");
+
     if (useMap) 
     {
         cl_int * mapPtr = (cl_int*) clEnqueueMapBuffer(
@@ -408,6 +413,8 @@ int main(int argc, char** argv)
             NULL,
             NULL);
     }
+
+    delete kernelLifeCycle; // report runtime after copying memory back
 
     std::printf("Averages:\n");
     print2DBuffer(inputOutput);
