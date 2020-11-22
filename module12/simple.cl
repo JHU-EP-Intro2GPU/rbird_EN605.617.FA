@@ -29,7 +29,8 @@ __kernel void average2D(__global float* buffer2D, int stride, __local float* sha
 
 	int value = buffer2D[bufferIndex];
 
-	printf("(%d, %d)[%d] = %d, local index: %d\n", x, y, bufferIndex, value, localIndex);
+	// DEBUG statement that correctly outputs on Intel chip
+	//printf("(%d, %d)[%d] = %d, local index: %d\n", x, y, bufferIndex, value, localIndex);
 	
 	// sum values in local memory
 	sharedMem[localIndex] = value;

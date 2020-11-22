@@ -148,6 +148,8 @@ int main(int argc, char** argv)
         checkErr(errNum, "clGetDeviceIDs");
     }       
 
+    // I have 2 OpenCL devices on my Intel platform. devices[1] (my device CPU) is erroring
+    // on kernel launch when using the subbuffer
     std::printf("Num Devices on platform: %d\n", numDevices);
     std::printf("Limiting program to 1 Device\n");
     numDevices = 1;
@@ -221,7 +223,7 @@ int main(int argc, char** argv)
     cl_mem buffer = clCreateBuffer(
         context,
         CL_MEM_READ_WRITE,
-        sizeof(int) * NUM_BUFFER_ELEMENTS * numDevices,
+        sizeof(float) * NUM_BUFFER_ELEMENTS * numDevices,
         NULL,
         &errNum);
     checkErr(errNum, "clCreateBuffer");
@@ -276,16 +278,15 @@ int main(int argc, char** argv)
             program,
             "average2D",
             &errNum);
-        checkErr(errNum, "average2D(square)");
+        checkErr(errNum, "clCreateKernel(average2D)");
 
         // set the input buffer
         errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&buffers[i]);
         // tell the kernel the buffer stride/width
-        errNum = clSetKernelArg(kernel, 1, sizeof(BUFFER_WIDTH), &BUFFER_WIDTH);
+        errNum |= clSetKernelArg(kernel, 1, sizeof(BUFFER_WIDTH), &BUFFER_WIDTH);
         // allocate local memory
-        errNum = clSetKernelArg(kernel, 2, FILTER_HEIGHT * FILTER_WIDTH * sizeof(float), NULL);
-
-        checkErr(errNum, "average2D(square)");
+        errNum |= clSetKernelArg(kernel, 2, FILTER_HEIGHT * FILTER_WIDTH * sizeof(float), NULL);
+        checkErr(errNum, "clSetKernelArg(average2D)");
 
         kernels.push_back(kernel);
     }
@@ -329,7 +330,7 @@ int main(int argc, char** argv)
             buffers[0],
             CL_TRUE,
             0,
-            sizeof(int) * NUM_BUFFER_ELEMENTS * numDevices,
+            sizeof(float) * NUM_BUFFER_ELEMENTS * numDevices,
             (void*)inputOutput,
             0,
             NULL,
@@ -348,15 +349,16 @@ int main(int argc, char** argv)
         cl_event event;
 
         size_t globalDimensions[] = { FILTER_WIDTH, FILTER_HEIGHT };
+        size_t localDimensions[] = { FILTER_WIDTH, FILTER_HEIGHT };
 
         // On my machine, my integrated GPU throws an error here. Use the command queue for CPU (index 0) for all work.
         errNum = clEnqueueNDRangeKernel(
-            queues[0], 
+            queues[i % numDevices], 
             kernels[i], 
             2, // 2D workspace
             NULL,
             (const size_t*)&globalDimensions,
-            (const size_t*)NULL, 
+            (const size_t*)&localDimensions,
             0, 
             0, 
             &event);
@@ -407,7 +409,7 @@ int main(int argc, char** argv)
             buffers[0],
             CL_TRUE,
             0,
-            sizeof(int) * NUM_BUFFER_ELEMENTS * numDevices,
+            sizeof(float) * NUM_BUFFER_ELEMENTS * numDevices,
             (void*)inputOutput,
             0,
             NULL,
