@@ -1,2 +1,2 @@
-all: assignment.c
-	gcc assignment.c -o assignment.exe
+all: simple.cpp
+	nvcc simple.cpp -lOpenCL -o simple.exe
