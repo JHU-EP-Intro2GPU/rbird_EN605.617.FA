@@ -71,8 +71,46 @@ __device__ void processChunk(DataBlock_512_bit& chunk, SHA256Digest& digest) {
     digest.h7 += h;
 }
 
+__device__ void loadGlobalMemoryIntoShared(uint8_t* sharedMem, const uint64_t sharedMemSizeBytes, const uint8_t* globalData)
+{
+    const int tid = threadIdx.x;
+    const int blockSize = blockDim.x;
+
+    for (int currentIndex = tid; currentIndex < sharedMemSizeBytes; currentIndex += blockSize) {
+        sharedMem[currentIndex] = globalData[currentIndex];
+    }
+
+    __syncthreads();
+}
+
+__device__ void writeSharedDigestsToGlobalMemory(const uint8_t* sharedMem, const uint64_t sharedMemSizeBytes, uint8_t* globalData)
+{
+    __syncthreads();
+
+    const int tid = threadIdx.x;
+    const int blockSize = blockDim.x;
+
+    for (int currentIndex = tid; currentIndex < sharedMemSizeBytes; currentIndex += blockSize) {
+        globalData[currentIndex] = sharedMem[currentIndex];
+    }
+}
+
 __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Digest* output)
 {
+    uint64_t numChunks = dataLength / 64; // a 512 block is made up of 64 8 bit integers
+    uint64_t chunkLength = dataLength / numChunks; // TODO: make sure this will work once each thread iterates over several 512 bit chunks
+
+#ifdef USE_GLOBAL_DATA
+    DataBlock_512_bit* chunks = (DataBlock_512_bit*)data; // process data 512 bits at a time
+#else
+    // use shared data
+    __shared__ DataBlock_512_bit chunks[2];
+    __shared__ SHA256Digest sharedDigests[2];
+    const uint64_t sharedMemSizeBytes = 1024 / 8;
+    loadGlobalMemoryIntoShared((uint8_t*)chunks, sharedMemSizeBytes, data);
+#endif // USE_GLOBAL_DATA
+
+
     // Set initial digest values
     SHA256Digest digest;
     digest.h0 = 0x6a09e667;
@@ -83,20 +121,15 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
     digest.h5 = 0x9b05688c;
     digest.h6 = 0x1f83d9ab;
     digest.h7 = 0x5be0cd19;
-
-    // TODO: Each kernel will need to pad their own individual chunk. Be sure to pad their individual chunks
-
-
-    DataBlock_512_bit* chunks = (DataBlock_512_bit*) data; // process data 512 bits at a time
-    uint64_t numChunks = dataLength / 64; // a 512 block is made up of 64 8 bit integers
-    uint64_t chunkLength = dataLength / numChunks; // TODO: make sure this will work once each thread iterates over several 512 bit chunks
     
     int threadId = threadIdx.x;
     processChunk(chunks[threadId], digest);
 
+    /*
     if (threadId == 0) {
         printDigest(digest);
     }
+    */
 
     
     /*
@@ -116,10 +149,8 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
         printDigest(digest);
     }
 
-    // TODO: improve this so that memory writes aren't strided in global memory
-    //       Perform strided write in shared memory, then write to global memory as a block
-
     // Save result
+#ifdef USE_GLOBAL_DATA
     output[threadId].h0 = digest.h0;
     output[threadId].h1 = digest.h1;
     output[threadId].h2 = digest.h2;
@@ -128,5 +159,20 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
     output[threadId].h5 = digest.h5;
     output[threadId].h6 = digest.h6;
     output[threadId].h7 = digest.h7;
+#else
+    // stage data in shared memory and then write to global memory sequentially instead of strided writes
+    sharedDigests[threadId].h0 = digest.h0;
+    sharedDigests[threadId].h1 = digest.h1;
+    sharedDigests[threadId].h2 = digest.h2;
+    sharedDigests[threadId].h3 = digest.h3;
+    sharedDigests[threadId].h4 = digest.h4;
+    sharedDigests[threadId].h5 = digest.h5;
+    sharedDigests[threadId].h6 = digest.h6;
+    sharedDigests[threadId].h7 = digest.h7;
+
+    const uint64_t sharedDigestBytes = sizeof(SHA256Digest) * blockDim.x;
+    writeSharedDigestsToGlobalMemory((uint8_t*)sharedDigests, sharedDigestBytes, (uint8_t*) output);
+#endif // USE_GLOBAL_DATA
+
 }
 
