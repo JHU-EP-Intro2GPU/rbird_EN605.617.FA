@@ -49,12 +49,12 @@ struct DataBlock_2048_bit {
     //uint32_t h32, h33, h34, h35, h36, h37, h38, h39, h40, h41, h42, h43, h44, h45, h46, h47;
     //uint32_t h48, h49, h50, h51, h52, h53, h54, h55, h56, h57, h58, h59, h60, h61, h62, h63;
 
-    // TODO: Can we get data to live in shared memory?
+    // Both debugging and the Cuda Developer guide seem to indicate that this lives in
+    // local memory. This should be fast memory.
+    // See Local Memory under: https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory-accesses
     uint32_t data[64];
 
     __device__ void processData(const DataBlock_512_bit& src) {
-        // this could be very slow since this may no longer be register memory
-        // consider making this parallelizeable among different threads
         data[0] = src.h0;
         data[1] = src.h1;
         data[2] = src.h2;

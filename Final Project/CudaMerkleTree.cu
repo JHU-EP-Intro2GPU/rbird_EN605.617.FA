@@ -30,10 +30,9 @@ __constant__ uint32_t k[64] = {
 };
 
 __device__ void processChunk(DataBlock_512_bit& chunk, SHA256Digest& digest) {
-    DataBlock_2048_bit w;
+    DataBlock_2048_bit w; // TODO: get this into fast memory
     w.processData(chunk);
 
-    // TODO: could look into doing a union object?
     uint32_t a = digest.h0;
     uint32_t b = digest.h1;
     uint32_t c = digest.h2;

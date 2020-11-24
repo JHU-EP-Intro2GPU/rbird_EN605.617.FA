@@ -9,7 +9,6 @@
 
 
 int main(int argc, const char* argv[]) {
-
     HostAndDeviceMemory<uint8_t> fileData = readData2Chunks();
 
 
