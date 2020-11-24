@@ -72,7 +72,7 @@ __device__ void processChunk(DataBlock_512_bit& chunk, SHA256Digest& digest) {
 
 __device__ void loadGlobalMemoryIntoShared(uint8_t* sharedMem, const uint64_t sharedMemSizeBytes, const uint8_t* globalData)
 {
-    const int tid = threadIdx.x;
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
     const int blockSize = blockDim.x;
 
     for (int currentIndex = tid; currentIndex < sharedMemSizeBytes; currentIndex += blockSize) {
@@ -86,7 +86,7 @@ __device__ void writeSharedDigestsToGlobalMemory(const uint8_t* sharedMem, const
 {
     __syncthreads();
 
-    const int tid = threadIdx.x;
+    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
     const int blockSize = blockDim.x;
 
     for (int currentIndex = tid; currentIndex < sharedMemSizeBytes; currentIndex += blockSize) {
@@ -121,8 +121,9 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
     digest.h6 = 0x1f83d9ab;
     digest.h7 = 0x5be0cd19;
     
-    int threadId = threadIdx.x;
-    processChunk(chunks[threadId], digest);
+    int globalThreadId = blockDim.x * blockIdx.x + threadIdx.x;
+    int localThreadId = threadIdx.x;
+    processChunk(chunks[globalThreadId], digest);
 
     /*
     if (threadId == 0) {
@@ -150,27 +151,28 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
 
     // Save result
 #ifdef USE_GLOBAL_DATA
-    output[threadId].h0 = digest.h0;
-    output[threadId].h1 = digest.h1;
-    output[threadId].h2 = digest.h2;
-    output[threadId].h3 = digest.h3;
-    output[threadId].h4 = digest.h4;
-    output[threadId].h5 = digest.h5;
-    output[threadId].h6 = digest.h6;
-    output[threadId].h7 = digest.h7;
+    output[localThreadId].h0 = digest.h0;
+    output[localThreadId].h1 = digest.h1;
+    output[localThreadId].h2 = digest.h2;
+    output[localThreadId].h3 = digest.h3;
+    output[localThreadId].h4 = digest.h4;
+    output[localThreadId].h5 = digest.h5;
+    output[localThreadId].h6 = digest.h6;
+    output[localThreadId].h7 = digest.h7;
 #else
     // stage data in shared memory and then write to global memory sequentially instead of strided writes
-    sharedDigests[threadId].h0 = digest.h0;
-    sharedDigests[threadId].h1 = digest.h1;
-    sharedDigests[threadId].h2 = digest.h2;
-    sharedDigests[threadId].h3 = digest.h3;
-    sharedDigests[threadId].h4 = digest.h4;
-    sharedDigests[threadId].h5 = digest.h5;
-    sharedDigests[threadId].h6 = digest.h6;
-    sharedDigests[threadId].h7 = digest.h7;
+    sharedDigests[localThreadId].h0 = digest.h0;
+    sharedDigests[localThreadId].h1 = digest.h1;
+    sharedDigests[localThreadId].h2 = digest.h2;
+    sharedDigests[localThreadId].h3 = digest.h3;
+    sharedDigests[localThreadId].h4 = digest.h4;
+    sharedDigests[localThreadId].h5 = digest.h5;
+    sharedDigests[localThreadId].h6 = digest.h6;
+    sharedDigests[localThreadId].h7 = digest.h7;
 
     const uint64_t sharedDigestBytes = sizeof(SHA256Digest) * blockDim.x;
-    writeSharedDigestsToGlobalMemory((uint8_t*)sharedDigests, sharedDigestBytes, (uint8_t*) output);
+    SHA256Digest* blockWriteLocation = output + blockIdx.x * blockDim.x;
+    writeSharedDigestsToGlobalMemory((uint8_t*)sharedDigests, sharedDigestBytes, (uint8_t*)blockWriteLocation);
 #endif // USE_GLOBAL_DATA
 
 }
