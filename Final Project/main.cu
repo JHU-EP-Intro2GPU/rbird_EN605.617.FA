@@ -14,8 +14,8 @@ int main(int argc, const char* argv[]) {
 
     HostAndDeviceMemory<SHA256Digest> messageDigest(2); // allocate 1 digest
 
-    int blocks = 1;
-    int threadsPerBlock = messageDigest.size(); // TODO: this is not accurate long term
+    int blocks = 2;
+    int threadsPerBlock = 1; // TODO: this is not accurate long term
     CreateHashes <<< blocks, threadsPerBlock >>> (fileData.device(), fileData.size(), messageDigest.device());
     gpuErrchk(cudaGetLastError());
 
