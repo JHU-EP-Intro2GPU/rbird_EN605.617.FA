@@ -7,15 +7,19 @@
 #include "SampleTestData.h"
 
 
+void runTest(HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerBlock)
+{
+    std::cout << "Data Bytes: " << fileData.size() << ", Blocks: " << blocks << ", Threads Per Block: " << threadsPerBlock << std::endl;
+    std::cout << "Data:" << std::endl << fileData << std::endl;
 
-int main(int argc, const char* argv[]) {
-    HostAndDeviceMemory<uint8_t> fileData = readData2Chunks();
+    if (fileData.size() % bytesPerBlock != 0) {
+        std::cerr << "Unexpected data size: " << fileData.size() << std::endl;
+        exit(-1);
+    }
 
-
-    HostAndDeviceMemory<SHA256Digest> messageDigest(2); // allocate 1 digest
-
-    int blocks = 2;
-    int threadsPerBlock = 1; // TODO: this is not accurate long term
+    // Current implementation, 1 hash per block
+    size_t totalChunks = fileData.size() / bytesPerBlock;
+    HostAndDeviceMemory<SHA256Digest> messageDigest(totalChunks);
     CreateHashes <<< blocks, threadsPerBlock >>> (fileData.device(), fileData.size(), messageDigest.device());
     gpuErrchk(cudaGetLastError());
 
@@ -24,6 +28,15 @@ int main(int argc, const char* argv[]) {
     std::printf("\nHashes:\n");
     for (int i = 0; i < messageDigest.size(); i++)
         printDigest(messageDigest.host()[i]);
+
+    std::printf("\n");
+}
+
+
+int main(int argc, const char* argv[]) {
+    runTest(readDataOneChunkOneIteration(), 1, 1);
+    runTest(readData2Chunks(), 1, 2);
+    runTest(readData2Chunks(), 2, 1);
 
 
     // this app can enforce an exact file size restriction in order to not deal with

@@ -41,17 +41,11 @@ std::ostream& operator<<(std::ostream& out, const HostAndDeviceMemory<uint8_t>& 
 
 // Data is used to verify correct behavior from the hasing code
 HostAndDeviceMemory<uint8_t> readDataOneChunkOneIteration() {
-    // Sample data
     uint64_t fileSizeInBytes = bytesPerBlock;
-    HostAndDeviceMemory<uint8_t> fileData;
-    fileData.allocate(fileSizeInBytes);
+    HostAndDeviceMemory<uint8_t> fileData(fileSizeInBytes);
 
-    std::printf("bytes: %d\n", fileSizeInBytes);
-    for (int i = 0; i < fileSizeInBytes; i++) {
-        fileData.host()[i] = (i == 0) ? 'b' : 'a';
-        std::printf("%c", fileData.host()[i]);
-    }
-    std::printf("\n");
+    fileData << aaa_block;
+//    fileData << baa_block;
 
     fileData.transferToDevice();
     return fileData;
@@ -63,25 +57,19 @@ HostAndDeviceMemory<uint8_t> readData2Chunks() {
     const uint64_t fileSizeInBytes = bytesPerBlock * 2;
     HostAndDeviceMemory<uint8_t> fileData(fileSizeInBytes);
 
-    std::printf("bytes: %d\n", fileSizeInBytes);
-
     fileData << aaa_block << baa_block;
-    std::cout << "data:" << std::endl << fileData << std::endl;
 
     fileData.transferToDevice();
     return fileData;
 }
 
-
+// Data used to test creating the hash tree
 HostAndDeviceMemory<uint8_t> readData8Chunks() {
     const uint64_t fileSizeInBytes = bytesPerBlock * 8;
     HostAndDeviceMemory<uint8_t> fileData(fileSizeInBytes);
 
-    std::printf("bytes: %d\n", fileSizeInBytes);
-
     fileData << aaa_block << baa_block << aaa_block << baa_block
         << aaa_block << baa_block << aaa_block << baa_block;
-    std::cout << "data:" << std::endl << fileData << std::endl;
 
     fileData.transferToDevice();
     return fileData;
