@@ -87,7 +87,7 @@ __device__ void writeSharedDigestsToGlobalMemory(const uint8_t* sharedMem, const
 {
     __syncthreads();
 
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    const int tid = threadIdx.x;
     const int blockSize = blockDim.x;
 
     for (int currentIndex = tid; currentIndex < numBytesToWrite; currentIndex += blockSize) {

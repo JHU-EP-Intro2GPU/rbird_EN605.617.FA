@@ -29,6 +29,7 @@ void runTest(HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerB
     messageDigest.transferToHost();
 
     std::printf("\nHashes:\n");
+    std::printf("Hash bytes: %d\n", messageDigest.size() * sizeof(SHA256Digest));
     for (int i = 0; i < messageDigest.size(); i++)
         printDigest(messageDigest.host()[i]);
 
@@ -42,6 +43,10 @@ int main(int argc, const char* argv[]) {
     runTest(readData2Chunks(), 2, 1);
 
     runTest(readData8Chunks(), 1, 8); // 1 block, 8 threads
+    runTest(readData8Chunks(), 2, 4); // 1 block, 8 threads
+    runTest(readData8Chunks(), 4, 2); // 1 block, 8 threads
+
+    runTest(readData8Chunks(), 8, 1); // 1 block, 8 threads
 
 
     // this app can enforce an exact file size restriction in order to not deal with
