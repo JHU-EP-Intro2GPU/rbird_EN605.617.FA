@@ -106,8 +106,8 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
     DataBlock_512_bit* chunks = (DataBlock_512_bit*)data; // process data 512 bits at a time
 #else
     // use shared data
-    __shared__ DataBlock_512_bit chunks[2];
-    __shared__ SHA256Digest sharedDigests[2];
+    extern __shared__ DataBlock_512_bit chunks[];
+    extern __shared__ SHA256Digest sharedDigests[];
     const uint64_t numBytesToRead = blockDim.x * 64; // TEMP
 
     data = data + blockIdx.x * numBytesToRead;

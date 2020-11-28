@@ -17,10 +17,13 @@ void runTest(HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerB
         exit(-1);
     }
 
-    // Current implementation, 1 hash per block
-    size_t totalChunks = fileData.size() / bytesPerBlock;
+    // Current implementation, 1 hash per thread
+    size_t totalChunks = blocks * threadsPerBlock;
     HostAndDeviceMemory<SHA256Digest> messageDigest(totalChunks);
-    CreateHashes <<< blocks, threadsPerBlock >>> (fileData.device(), fileData.size(), messageDigest.device());
+
+    // Allocate enough shared memory to store 1 file chunk
+    size_t sharedMemoryBytes = threadsPerBlock * bytesPerBlock;
+    CreateHashes <<< blocks, threadsPerBlock, sharedMemoryBytes >>> (fileData.device(), fileData.size(), messageDigest.device());
     gpuErrchk(cudaGetLastError());
 
     messageDigest.transferToHost();
@@ -37,6 +40,8 @@ int main(int argc, const char* argv[]) {
     runTest(readDataOneChunkOneIteration(), 1, 1);
     runTest(readData2Chunks(), 1, 2);
     runTest(readData2Chunks(), 2, 1);
+
+    runTest(readData8Chunks(), 1, 8); // 1 block, 8 threads
 
 
     // this app can enforce an exact file size restriction in order to not deal with
