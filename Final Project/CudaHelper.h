@@ -72,6 +72,7 @@ class HostAndDeviceMemory
     T* host_ptr;
     T* device_ptr;
     size_t _size;
+    size_t _count = 0;
 
 public:
     HostAndDeviceMemory() : host_ptr(nullptr), device_ptr(nullptr), _size(-1) {
@@ -134,9 +135,20 @@ public:
         deallocate();
     }
 
+    void appendToHost(T c) {
+        if (_count == _size) {
+            std::printf("ERROR! Appending to full buffer");
+            exit(-1);
+        }
+
+        host_ptr[_count] = std::move(c);
+        _count++;
+    }
+
     inline T* host() const { return host_ptr; }
     inline T* device() const { return device_ptr; }
     inline size_t size() const { return _size; }
+    inline size_t count() const { return _count; }
 };
 
 // A helper wrapper to auto clean up cuda stream objects

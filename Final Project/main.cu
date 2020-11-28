@@ -21,6 +21,7 @@ int main(int argc, const char* argv[]) {
 
     messageDigest.transferToHost();
 
+    std::printf("\nHashes:\n");
     for (int i = 0; i < messageDigest.size(); i++)
         printDigest(messageDigest.host()[i]);
 
