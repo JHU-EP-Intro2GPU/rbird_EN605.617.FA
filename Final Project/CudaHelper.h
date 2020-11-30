@@ -75,10 +75,12 @@ class HostAndDeviceMemory
     size_t _count = 0;
 
 public:
+    friend class Conversion; // allow Conversion class to access private variables
+
     HostAndDeviceMemory() : host_ptr(nullptr), device_ptr(nullptr), _size(-1) {
     }
 
-    HostAndDeviceMemory(HostAndDeviceMemory&& memory) {
+    HostAndDeviceMemory(HostAndDeviceMemory<T>&& memory) {
         host_ptr = std::move(memory.host_ptr);
         device_ptr = std::move(memory.device_ptr);
         _size = std::move(memory._size);
@@ -143,6 +145,21 @@ public:
 
         host_ptr[_count] = std::move(c);
         _count++;
+    }
+
+    void operator=(HostAndDeviceMemory<T>&& memory)
+    {
+        deallocate();
+
+        host_ptr = std::move(memory.host_ptr);
+        device_ptr = std::move(memory.device_ptr);
+        _size = std::move(memory._size);
+        _count = std::move(memory._count);
+
+        memory.host_ptr = nullptr;
+        memory.device_ptr = nullptr;
+        memory._size = 0;
+        memory._count = 0;
     }
 
     inline T* host() const { return host_ptr; }

@@ -1,0 +1,53 @@
+Data Bytes: 512, Blocks: 8, Threads Per Block: 1
+Data:
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+Hashes:
+Hash bytes: 256
+0x1f2e53d352d0e7000b7d985ab848e3b0f59b7726c86d8b8c408b00de5adf2d9b
+0xd24bfbc1f5be022baddb4da7806f9c2eb278b7a7c47a6792bd9eb75b858daade
+0x1f2e53d352d0e7000b7d985ab848e3b0f59b7726c86d8b8c408b00de5adf2d9b
+0xd24bfbc1f5be022baddb4da7806f9c2eb278b7a7c47a6792bd9eb75b858daade
+0x1f2e53d352d0e7000b7d985ab848e3b0f59b7726c86d8b8c408b00de5adf2d9b
+0xd24bfbc1f5be022baddb4da7806f9c2eb278b7a7c47a6792bd9eb75b858daade
+0x1f2e53d352d0e7000b7d985ab848e3b0f59b7726c86d8b8c408b00de5adf2d9b
+0xd24bfbc1f5be022baddb4da7806f9c2eb278b7a7c47a6792bd9eb75b858daade
+
+Data Bytes: 256, Blocks: 4, Threads Per Block: 1
+Data:
+╙S.▼τ╨RZÿ}♂░πH╕&w¢⌡îïm╚▐ï@¢-▀Z┴√K╥+☻╛⌡ºM█¡.£oÇº╖x▓Ægz─[╖₧╜▐¬ìà
+╙S.▼τ╨RZÿ}♂░πH╕&w¢⌡îïm╚▐ï@¢-▀Z┴√K╥+☻╛⌡ºM█¡.£oÇº╖x▓Ægz─[╖₧╜▐¬ìà
+╙S.▼τ╨RZÿ}♂░πH╕&w¢⌡îïm╚▐ï@¢-▀Z┴√K╥+☻╛⌡ºM█¡.£oÇº╖x▓Ægz─[╖₧╜▐¬ìà
+╙S.▼τ╨RZÿ}♂░πH╕&w¢⌡îïm╚▐ï@¢-▀Z┴√K╥+☻╛⌡ºM█¡.£oÇº╖x▓Ægz─[╖₧╜▐¬ìà
+
+Hashes:
+Hash bytes: 128
+0x19c4ab259872a05e83e1f4d182fb91f3d15b4392a2f6533559b54c2530aa07ec
+0x19c4ab259872a05e83e1f4d182fb91f3d15b4392a2f6533559b54c2530aa07ec
+0x19c4ab259872a05e83e1f4d182fb91f3d15b4392a2f6533559b54c2530aa07ec
+0x19c4ab259872a05e83e1f4d182fb91f3d15b4392a2f6533559b54c2530aa07ec
+
+Data Bytes: 128, Blocks: 2, Threads Per Block: 1
+Data:
+%½─↓^árÿ╤⌠ßâ≤æ√éÆC[╤5S÷ó%L╡Y∞¬0%½─↓^árÿ╤⌠ßâ≤æ√éÆC[╤5S÷ó%L╡Y∞¬0
+%½─↓^árÿ╤⌠ßâ≤æ√éÆC[╤5S÷ó%L╡Y∞¬0%½─↓^árÿ╤⌠ßâ≤æ√éÆC[╤5S÷ó%L╡Y∞¬0
+
+Hashes:
+Hash bytes: 64
+0x4a871bc71bf669069e4ab25e2b3d72bac7c0a9297126de4422fb1d942b4b782c
+0x4a871bc71bf669069e4ab25e2b3d72bac7c0a9297126de4422fb1d942b4b782c
+
+Data Bytes: 64, Blocks: 1, Threads Per Block: 1
+Data:
+╟J♠i÷▓J₧║r=+)⌐└╟D▐&qö↔√",xK+╟J♠i÷▓J₧║r=+)⌐└╟D▐&qö↔√",xK+
+
+Hashes:
+Hash bytes: 32
+0xfbeb839026cc9f7d16c03fc9190e12929fd40d75ba201ae0599926fb55ab75d1
