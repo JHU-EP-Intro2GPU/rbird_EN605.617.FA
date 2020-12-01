@@ -8,6 +8,8 @@
 
 #include "SampleTestData.h"
 
+#pragma region CommandLineArguments
+
 struct CommandLineParameters
 {
 public:
@@ -27,6 +29,9 @@ public:
     bool debug = false;
 };
 
+#pragma endregion
+
+#pragma region FileWriting
 std::ostream& operator<<(std::ostream& out, const SHA256Digest& digest) {
     out << std::hex << digest.h0 << digest.h1 << digest.h2 << digest.h3
         << digest.h4 << digest.h5 << digest.h6 << digest.h7;
@@ -44,6 +49,8 @@ void writeResults(const HostAndDeviceMemory<SHA256Digest>& results, std::ostream
 
     output << std::endl;
 }
+
+#pragma endregion
 
 HostAndDeviceMemory<SHA256Digest> runTest(HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerBlock, bool printMessages)
 {
@@ -80,6 +87,9 @@ HostAndDeviceMemory<SHA256Digest> runTest(HostAndDeviceMemory<uint8_t>& fileData
     return messageDigest;
 }
 
+// A helper function to convert/cast HostAndDeviceMemory from one type to another
+// Example:
+// Convert HostAndDeviceMemory<SHA256Digest> to byte buffer HostAndDeviceMemory<uint8_t>
 class Conversion
 {
 public:
@@ -89,9 +99,12 @@ public:
 
         other.host_ptr = (S*)src.host_ptr;
         other.device_ptr = (S*)src.device_ptr;
+
+        // Calculate the new number of elements
         float sizeChange = ((float)sizeof(S)) / sizeof(T);
         other._size = src._size / sizeChange;
 
+        // Clear out the source memory to avoid double-free
         src.host_ptr = nullptr;
         src.device_ptr = nullptr;
         src._size = 0;

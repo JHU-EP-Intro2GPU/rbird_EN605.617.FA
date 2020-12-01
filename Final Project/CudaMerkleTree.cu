@@ -18,6 +18,7 @@ void printDigest(const SHA256Digest& digest) {
 // later if time permits. I don't think that 100% accuracy to the SHA256 algorithm is currently worth
 // the time to debug. The rest of the project should still behave correctly.
 
+// Constant values as defined by the SHA-256 spec
 __constant__ uint32_t k[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
@@ -29,7 +30,9 @@ __constant__ uint32_t k[64] = {
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
+// This function processes the next 512 bits and updates the provided digest
 __device__ void processChunk(DataBlock_512_bit& chunk, SHA256Digest& digest) {
+    // Load the 512 bits into a 2048 bit block according to the SHA-256 spec
     DataBlock_2048_bit w; // TODO: get this into fast memory
     w.processData(chunk);
 
@@ -42,6 +45,7 @@ __device__ void processChunk(DataBlock_512_bit& chunk, SHA256Digest& digest) {
     uint32_t g = digest.h6;
     uint32_t h = digest.h7;
 
+    // Scramble the 2048 bit block according to the sha-256 algorithm
     for (int i = 0; i < 64; i++) {
         uint32_t S1 = rotateBitsRight(e, 6) ^ rotateBitsRight(e, 11) ^ rotateBitsRight(e, 25);
         uint32_t ch = (e & f) ^ (~e & g);
@@ -70,6 +74,8 @@ __device__ void processChunk(DataBlock_512_bit& chunk, SHA256Digest& digest) {
     digest.h7 += h;
 }
 
+// A helper function to load memory/bytes from global data into shared memory. This is implemented to load contiguous
+// memory instead of strided memory (performance improvement)
 __device__ void loadGlobalMemoryIntoShared(uint8_t* sharedMem, const uint64_t numBytesToRead, const uint8_t* globalData)
 {
     // globalData is already offset for blocks
@@ -83,6 +89,8 @@ __device__ void loadGlobalMemoryIntoShared(uint8_t* sharedMem, const uint64_t nu
     __syncthreads();
 }
 
+// A helper function to write memory/bytes to global data from shared memory. This is implemented to write contiguous
+// memory instead of strided memory (performance improvement)
 __device__ void writeSharedDigestsToGlobalMemory(const uint8_t* sharedMem, const uint64_t numBytesToWrite, uint8_t* globalData)
 {
     __syncthreads();
@@ -108,13 +116,14 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
     // use shared data
     extern __shared__ DataBlock_512_bit chunks[];
     extern __shared__ SHA256Digest sharedDigests[];
-    const uint64_t numBytesToRead = blockDim.x * 64; // TEMP
+    // Each thread processes a single 512 bit block in this implementation
+    const uint64_t numBytesToRead = blockDim.x * sizeof(DataBlock_512_bit);
 
     data = data + blockIdx.x * numBytesToRead;
     loadGlobalMemoryIntoShared((uint8_t*)chunks, numBytesToRead, data);
 #endif // USE_GLOBAL_DATA
 
-    // Set initial digest values
+    // Set initial digest values (defined by the SHA-256 spec)
     SHA256Digest digest;
     digest.h0 = 0x6a09e667;
     digest.h1 = 0xbb67ae85;
@@ -134,7 +143,7 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
     processChunk(chunks[localThreadId], digest);
 #endif
 
-    /*
+    /* Future feature: Have each thread create a hash for multiple chunks of data
     for (unsigned int i = 0; i < numChunks; i++) {
         processChunk(chunks[i], digest);
     }
@@ -145,12 +154,6 @@ __global__ void CreateHashes(const uint8_t* data, uint64_t dataLength, SHA256Dig
     paddedBlock.convertToPaddedBlock(chunkLength);
 
     processChunk(paddedBlock, digest);
-
-    /*
-    if (threadId == 0) {
-        printDigest(digest);
-    }
-    */
 
     // Save result
 #ifdef USE_GLOBAL_DATA
