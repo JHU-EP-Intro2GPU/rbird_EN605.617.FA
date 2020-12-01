@@ -1,16 +1,56 @@
 
 #include <cstdint>
+#include <iostream>
+#include <fstream>
 
 #include "CudaHelper.h"
 #include "CudaMerkleTree.h"
 
 #include "SampleTestData.h"
 
-
-HostAndDeviceMemory<SHA256Digest> runTest(HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerBlock)
+struct CommandLineParameters
 {
-    std::cout << "Data Bytes: " << fileData.size() << ", Blocks: " << blocks << ", Threads Per Block: " << threadsPerBlock << std::endl;
-    std::cout << "Data:" << std::endl << fileData << std::endl;
+public:
+    CommandLineParameters(int argc, const char** argv) {
+        for (int i = 1; i < argc; i++) {
+            const char* arg = argv[i];
+            if (strcmp(arg, "--file") == 0) {
+                outfile = argv[++i];
+            }
+            else if (strcmp(arg, "--debug") == 0) {
+                debug = true;
+            }
+        }
+    }
+
+    std::string outfile;
+    bool debug = false;
+};
+
+std::ostream& operator<<(std::ostream& out, const SHA256Digest& digest) {
+    out << std::hex << digest.h0 << digest.h1 << digest.h2 << digest.h3
+        << digest.h4 << digest.h5 << digest.h6 << digest.h7;
+
+    return out;
+}
+
+void writeResults(const HostAndDeviceMemory<SHA256Digest>& results, std::ostream& output) {
+    for (int i = 0; i < results.size(); i++) {
+        if (i != 0) {
+            output << " ";
+        }
+        output << results.host()[i];
+    }
+
+    output << std::endl;
+}
+
+HostAndDeviceMemory<SHA256Digest> runTest(HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerBlock, bool printMessages)
+{
+    if (printMessages) {
+        std::cout << "Data Bytes: " << fileData.size() << ", Blocks: " << blocks << ", Threads Per Block: " << threadsPerBlock << std::endl;
+        std::cout << "Data:" << std::endl << fileData << std::endl;
+    }
 
     if (fileData.size() % bytesPerBlock != 0) {
         std::cerr << "Unexpected data size: " << fileData.size() << std::endl;
@@ -28,12 +68,14 @@ HostAndDeviceMemory<SHA256Digest> runTest(HostAndDeviceMemory<uint8_t>& fileData
 
     messageDigest.transferToHost();
 
-    std::printf("\nHashes:\n");
-    std::printf("Hash bytes: %d\n", messageDigest.size() * sizeof(SHA256Digest));
-    for (int i = 0; i < messageDigest.size(); i++)
-        printDigest(messageDigest.host()[i]);
+    if (printMessages) {
+        std::printf("\nHashes:\n");
+        std::printf("Hash bytes: %d\n", messageDigest.size() * sizeof(SHA256Digest));
+        for (int i = 0; i < messageDigest.size(); i++)
+            printDigest(messageDigest.host()[i]);
 
-    std::printf("\n");
+        std::printf("\n");
+    }
 
     return messageDigest;
 }
@@ -60,23 +102,34 @@ public:
 };
 
 int main(int argc, const char* argv[]) {
-    /*
-    runTest(readDataOneChunkOneIteration(), 1, 1);
-    runTest(readData2Chunks(), 1, 2);
-    runTest(readData2Chunks(), 2, 1);
+    CommandLineParameters args(argc, argv);
+    std::ofstream outfile;
 
-    runTest(readData8Chunks(), 1, 8); // 1 block, 8 threads
-    runTest(readData8Chunks(), 2, 4); // 1 block, 8 threads
-    runTest(readData8Chunks(), 4, 2); // 1 block, 8 threads
+    if (!args.outfile.empty()) {
+        outfile.open(args.outfile.c_str());
+    }
+
+    /*
+    runTest(readDataOneChunkOneIteration(), 1, 1, args.debug);
+    runTest(readData2Chunks(), 1, 2, args.debug);
+    runTest(readData2Chunks(), 2, 1, args.debug);
+
+    runTest(readData8Chunks(), 1, 8, args.debug); // 1 block, 8 threads
+    runTest(readData8Chunks(), 2, 4, args.debug); // 1 block, 8 threads
+    runTest(readData8Chunks(), 4, 2, args.debug); // 1 block, 8 threads
     */
 
     // test creating tree
-    HostAndDeviceMemory<SHA256Digest> results = runTest(readData8Chunks(), 8, 1);
+    HostAndDeviceMemory<SHA256Digest> results = runTest(readData8Chunks(), 8, 1, args.debug);
     do {
         int expectedNumberOfChunks = results.size() / 2; // 512 bit chunk converted to 256 bit digest
         //HostAndDeviceMemory<uint8_t> nextBatch = results.convertTo<uint8_t>();
         HostAndDeviceMemory<uint8_t> nextBatch = Conversion::convertTo<SHA256Digest, uint8_t>(results);
-        results = runTest(nextBatch, expectedNumberOfChunks, 1);
+        results = runTest(nextBatch, expectedNumberOfChunks, 1, args.debug);
+
+        if (outfile.is_open()) {
+            writeResults(results, outfile);
+        }
     } while (results.size() > 1);
 
 
