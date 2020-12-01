@@ -52,7 +52,7 @@ void writeResults(const HostAndDeviceMemory<SHA256Digest>& results, std::ostream
 
 #pragma endregion
 
-HostAndDeviceMemory<SHA256Digest> runTest(HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerBlock, bool printMessages)
+HostAndDeviceMemory<SHA256Digest> runTest(const HostAndDeviceMemory<uint8_t>& fileData, int blocks, int threadsPerBlock, bool printMessages)
 {
     if (printMessages) {
         std::cout << "Data Bytes: " << fileData.size() << ", Blocks: " << blocks << ", Threads Per Block: " << threadsPerBlock << std::endl;
