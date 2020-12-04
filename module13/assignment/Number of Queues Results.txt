@@ -1,0 +1,57 @@
+ccc_v1_w_DN6k_191794@runweb6:~/module13/assignment$ ./openCLMath.exe --arraysize 1000000 --queues 1                                                                                                         
+Testing 1000000 elements                                                                                                                                                                                    
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 10740 microseconds.                                                                                                                                                         
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6553 microseconds.                                                                                                                                                          
+Testing: sub_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6547 microseconds.                                                                                                                                                          
+Testing: mult_kernel                                                                                                                                                                                        
+Kernel Runtime Execution time = 6556 microseconds.                                                                                                                                                          
+Testing: div_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6741 microseconds.                                                                                                                                                          
+Testing: xor_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6703 microseconds.                                                                                                                                                          
+Executed program succesfully.
+ccc_v1_w_DN6k_191794@runweb6:~/module13/assignment$ ./openCLMath.exe --arraysize 1000000 --queues 2                                                                                                                           
+Testing 1000000 elements                                                                                                                                                                                    
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 10945 microseconds.                                                                                                                                                         
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6188 microseconds.                                                                                                                                                          
+Testing: sub_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6148 microseconds.                                                                                                                                                          
+Testing: mult_kernel                                                                                                                                                                                        
+Kernel Runtime Execution time = 6104 microseconds.                                                                                                                                                          
+Testing: div_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6381 microseconds.                                                                                                                                                          
+Testing: xor_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6363 microseconds.                                                                                                                                                          
+Executed program succesfully.                                                                                                                                                                               
+ccc_v1_w_DN6k_191794@runweb6:~/module13/assignment$ ./openCLMath.exe --arraysize 1000000 --queues 4                                                                                                                            
+Testing 1000000 elements                                                                                                                                                                                    
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 11763 microseconds.                                                                                                                                                         
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 5902 microseconds.                                                                                                                                                          
+Testing: sub_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 5924 microseconds.                                                                                                                                                          
+Testing: mult_kernel                                                                                                                                                                                        
+Kernel Runtime Execution time = 5991 microseconds.                                                                                                                                                          
+Testing: div_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6185 microseconds.                                                                                                                                                          
+Testing: xor_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6144 microseconds.                                                                                                                                                          
+Executed program succesfully.                                                                                                                                                                               
+ccc_v1_w_DN6k_191794@runweb6:~/module13/assignment$ ./openCLMath.exe --arraysize 1000000 --queues 10                                                                                                                            
+Testing 1000000 elements                                                                                                                                                                                    
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 12065 microseconds.                                                                                                                                                         
+Testing: add_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 5809 microseconds.                                                                                                                                                          
+Testing: sub_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 5745 microseconds.                                                                                                                                                          
+Testing: mult_kernel                                                                                                                                                                                        
+Kernel Runtime Execution time = 5793 microseconds.                                                                                                                                                          
+Testing: div_kernel                                                                                                                                                                                         
+Kernel Runtime Execution time = 6079 microseconds.
