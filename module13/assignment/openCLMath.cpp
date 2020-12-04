@@ -29,6 +29,9 @@ public:
             else if (strcmp(arg, "--debug") == 0) {
                 debug = true;
             }
+            else if (strcmp(arg, "--printkernels") == 0) {
+                printKernels = true;
+            }
             else if (strcmp(arg, "--randomRange") == 0) {
                 if (sscanf(argv[++i], "[%d,%d]", &randomMin, &randomMax) != 2) {
                     std::printf("Improper format for --randomRange argument.\n");
@@ -37,6 +40,14 @@ public:
                     exit(-1);
                 }
             }
+            else if (strcmp(arg, "--queues") == 0) {
+                numQueues = atoi(argv[++i]);
+            }
+        }
+
+        if (arraySize % numQueues != 0) {
+            std::printf("For simplicity, please use a number of queues that evenly divides the workload/elements\n");
+            exit(-1);
         }
     }
 
@@ -55,9 +66,11 @@ public:
     }
 
     bool debug = false;
+    bool printKernels = false;
     int arraySize = 1000;
     int randomMin = -1;
     int randomMax = -1;
+    int numQueues = 1;
 };
 
 ///
@@ -144,49 +157,97 @@ public:
         return true;
     }
 
+    std::vector<cl_mem> createSubbuffers(int offset, int numElements) {
+        std::vector<cl_mem> subbuffers;
+
+        cl_buffer_region region;
+        region.origin = offset * sizeof(float);
+        region.size = numElements * sizeof(float);
+
+        const int numBuffers = 3; // 2 input, 1 output
+        for (int i = 0; i < numBuffers; i++) {
+            cl_mem_flags subbufferPermissions;
+            clCheck(clGetMemObjectInfo(memObjects[i], CL_MEM_FLAGS, sizeof(cl_mem_flags), &subbufferPermissions, nullptr));
+
+            // On my machine, using subbufferPermissions results in a failure, using CL_MEM_READ_ONLY works and seems to allow writes.
+            cl_int errNum;
+            cl_mem buffer = clCreateSubBuffer(
+                memObjects[i],
+                CL_MEM_READ_ONLY,
+                CL_BUFFER_CREATE_TYPE_REGION,
+                &region,
+                &errNum);
+            clCheck(errNum);
+
+            subbuffers.push_back(buffer);
+        }
+
+        return subbuffers;
+    }
+
 
     void testKernel(const char* kernelName, const char* kernelCode, std::unique_ptr<float[]>& result) {
         std::printf("Testing: %s\n", kernelName);
 
-        if (params.debug)
+        if (params.printKernels)
             std::printf("%s\n", kernelCode);
 
-        // Create command-queue and program on the first device available
+        // Create program on the first device available
         cl_device_id device = 0;
-        cl_command_queue commandQueue = nullCheck(CreateCommandQueue(context, &device));
         cl_program program = nullCheck(CreateProgram(context, device, kernelCode));
 
         // Create OpenCL kernel
         cl_kernel kernel = nullCheck(clCreateKernel(program, kernelName, NULL));
 
+        // Create Queues and subbuffers for work
+        std::vector<cl_command_queue> queues;
 
-        // Set the kernel arguments (result, a, b)
-        clCheck(clSetKernelArg(kernel, 0, sizeof(cl_mem), &memObjects[0]));
-        clCheck(clSetKernelArg(kernel, 1, sizeof(cl_mem), &memObjects[1]));
-        clCheck(clSetKernelArg(kernel, 2, sizeof(cl_mem), &memObjects[2]));
+        for (int i = 0; i < params.numQueues; i++) {
+            // TODO: create queues and subbuffers
+            cl_command_queue commandQueue = nullCheck(CreateCommandQueue(context, &device));
+            queues.push_back(commandQueue);
+        }
 
-        size_t globalWorkSize[1] = { params.arraySize };
+        std::vector<cl_event> events(queues.size(), nullptr);
+
+        size_t kernelWorkload = params.arraySize / queues.size();
+        size_t globalWorkSize[1] = { kernelWorkload };
         size_t localWorkSize[1] = { 1 };
 
         // Queue the kernel up for execution across the array
         {
             TimeCodeBlock kernelRun("Kernel Runtime");
-            clCheck(clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL,
-                globalWorkSize, localWorkSize,
-                0, NULL, NULL));
-            clCheck(clFinish(commandQueue));
-        }
+            for (int i = 0; i < queues.size(); i++) {
+                cl_command_queue commandQueue = queues[i];
+                size_t bufferOffset = i * kernelWorkload;
+                std::vector<cl_mem> subbuffers = createSubbuffers(bufferOffset, kernelWorkload);
 
-        // Read the output buffer back to the Host
-        clCheck(clEnqueueReadBuffer(commandQueue, memObjects[2], CL_TRUE,
-            0, params.arraySize * sizeof(float), result.get(),
-            0, NULL, NULL));
+                // Set the kernel arguments (result, a, b)
+                clCheck(clSetKernelArg(kernel, 0, sizeof(cl_mem), &subbuffers[0]));
+                clCheck(clSetKernelArg(kernel, 1, sizeof(cl_mem), &subbuffers[1]));
+                clCheck(clSetKernelArg(kernel, 2, sizeof(cl_mem), &subbuffers[2]));
+
+                clCheck(clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL,
+                    globalWorkSize, localWorkSize,
+                    0, NULL, NULL));
+
+                // Read the output buffer back to the Host async
+                clCheck(clEnqueueReadBuffer(commandQueue, subbuffers[2], CL_FALSE,
+                    0, kernelWorkload * sizeof(float), result.get() + bufferOffset,
+                    0, NULL, &events[i]));
+            }
+
+            clCheck(clWaitForEvents(events.size(), events.data()));
+        }
 
         if (params.debug) {
             printArrayData(result.get(), params.arraySize);
         }
 
-        Cleanup(program, kernel, commandQueue);
+        Cleanup(program, kernel);
+        for (cl_command_queue commandQueue : queues) {
+            clCheck(clFinish(commandQueue));
+        }
     };
 
     cl_context context;
@@ -203,7 +264,7 @@ int main(int argc, char** argv)
     OpenCLTestContext testRunner(argc, argv);
 
     // Create memory objects that will be used as arguments to
-    // kernel.  First create host memory arrays that will be
+    // kernel. First create host memory arrays that will be
     // used to store the arguments to the kernel
     std::unique_ptr<float[]> result(new float[testRunner.params.arraySize]);
     std::unique_ptr<float[]> a(new float[testRunner.params.arraySize]);
