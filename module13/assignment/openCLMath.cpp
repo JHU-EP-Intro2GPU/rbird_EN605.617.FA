@@ -29,11 +29,35 @@ public:
             else if (strcmp(arg, "--debug") == 0) {
                 debug = true;
             }
+            else if (strcmp(arg, "--randomRange") == 0) {
+                if (sscanf(argv[++i], "[%d,%d]", &randomMin, &randomMax) != 2) {
+                    std::printf("Improper format for --randomRange argument.\n");
+                    std::printf("Expected: %s\n", "[%d,%d]");
+                    std::printf("Given: %s\n", argv[i]);
+                    exit(-1);
+                }
+            }
+        }
+    }
+
+    bool useRandomData() const {
+        // as long as one value has changed, then use random data
+        return randomMin != -1 || randomMax != -1;
+    }
+
+    float nextRand() {
+        if (randomMin == randomMax) {
+            return randomMin;
+        }
+        else {
+            return randomMin + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (randomMax - randomMin)));
         }
     }
 
     bool debug = false;
     int arraySize = 1000;
+    int randomMin = -1;
+    int randomMax = -1;
 };
 
 ///
@@ -73,6 +97,15 @@ void Cleanup(T item, Args... args)
 {
     Cleanup(item);
     Cleanup(args...);
+}
+
+template<typename T>
+void printArrayData(const T* buffer, size_t numElements) {
+    for (int i = 0; i < numElements; i++)
+    {
+        std::cout << buffer[i] << " ";
+    }
+    std::cout << std::endl;
 }
 
 struct OpenCLTestContext
@@ -150,12 +183,7 @@ public:
             0, NULL, NULL));
 
         if (params.debug) {
-            // Output the result buffer
-            for (int i = 0; i < params.arraySize; i++)
-            {
-                std::cout << result[i] << " ";
-            }
-            std::cout << std::endl;
+            printArrayData(result.get(), params.arraySize);
         }
 
         Cleanup(program, kernel, commandQueue);
@@ -181,13 +209,29 @@ int main(int argc, char** argv)
     std::unique_ptr<float[]> a(new float[testRunner.params.arraySize]);
     std::unique_ptr<float[]> b(new float[testRunner.params.arraySize]);
 
-    for (int i = 0; i < testRunner.params.arraySize; i++)
-    {
-        a[i] = (float)i;
-        b[i] = (float)(i * 2);
+    if (testRunner.params.useRandomData()) {
+        for (int i = 0; i < testRunner.params.arraySize; i++)
+        {
+            a[i] = testRunner.params.nextRand();
+            b[i] = testRunner.params.nextRand();
+        }
+    }
+    else {
+        for (int i = 0; i < testRunner.params.arraySize; i++)
+        {
+            a[i] = (float)i;
+            b[i] = (float)(i * 2);
+        }
     }
 
-    cl_mem memObjects[3] = { 0, 0, 0 };
+    if (testRunner.params.debug) {
+        std::printf("Input Buffers\na:\n");
+        printArrayData(a.get(), testRunner.params.arraySize);
+        std::printf("b:\n");
+        printArrayData(b.get(), testRunner.params.arraySize);
+        std::printf("\n");
+    }
+
     if (!testRunner.CreateMemObjects(a.get(), b.get(), testRunner.params.arraySize))
     {
         return 1;
