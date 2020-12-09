@@ -16,17 +16,23 @@ public:
     CommandLineParameters(int argc, const char** argv) {
         for (int i = 1; i < argc; i++) {
             const char* arg = argv[i];
-            if (strcmp(arg, "--file") == 0) {
+            if (strcmp(arg, "--outfile") == 0) {
                 outfile = argv[++i];
             }
             else if (strcmp(arg, "--debug") == 0) {
                 debug = true;
+            }
+            else if (strcmp(arg, "--randomBytes") == 0) {
+                runLargeTest = true;
+                totalRandomBytes = atoll(argv[++i]);
             }
         }
     }
 
     std::string outfile;
     bool debug = false;
+    bool runLargeTest = false;
+    uint64_t totalRandomBytes = 0;
 };
 
 #pragma endregion
@@ -114,12 +120,21 @@ public:
     }
 };
 
+void runLargeTest(const CommandLineParameters& args);
+
 int main(int argc, const char* argv[]) {
     CommandLineParameters args(argc, argv);
     std::ofstream outfile;
 
     if (!args.outfile.empty()) {
         outfile.open(args.outfile.c_str());
+    }
+
+    if (args.runLargeTest) {
+        // The large test has special handling that doesn't match the tree test below.
+        // Call a helper function to run test and return
+        runLargeTest(args);
+        return 0;
     }
 
     /*
@@ -152,3 +167,54 @@ int main(int argc, const char* argv[]) {
     return 0;
 }
 
+void runLargeTest(const CommandLineParameters& args)
+{
+    uint64_t totalBytes = args.totalRandomBytes;
+
+    // to avoid needing to do SHA256 padding, up-scale the total bytes
+    // so that the chunks can be evenly divided into 512 bit chunks
+    // NOTE: this adjustment is not perfect because the kernel code isn't perfect with 
+    auto remainder = totalBytes % bytesPerBlock;
+    if (remainder != 0) {
+        totalBytes = totalBytes + (bytesPerBlock - remainder);
+        std::cout << "Adjusting size to " << totalBytes << " bytes to be evenly divisible by " << bytesPerBlock << std::endl;
+    }
+
+    auto bytes = populateRandomData(totalBytes);
+
+    if (args.debug) {
+        if (totalBytes <= 5000) {
+            std::cout << "Data:" << std::endl << bytes << std::endl;
+        }
+    }
+
+    {
+        TimeCodeBlockCuda totalRun("Merkle Tree Creation");
+        HostAndDeviceMemory<SHA256Digest> results;
+        size_t numDigests;
+        do {
+            // Note: these calculations are not perfect because the kernel does not have proper bounds checking.
+            //       we are occasionally being short 1 block if the data length doesn't match up properly.
+            const auto numberOfDataChunks = totalBytes / bytesPerBlock;
+
+            // Calculate the number of threads per block. Max out at 'bytesPerBlock' as that is the maximum
+            // number of threads that can load data from global memory (each thread loads 1 byte each into main memory)
+            int threadsPerBlock = std::min(numberOfDataChunks, (uint64_t)bytesPerBlock);
+            int totalBlocks = std::max(numberOfDataChunks / threadsPerBlock, (uint64_t)1);
+
+            if (args.debug) {
+                std::cout << "Bytes: " << totalBytes << std::endl;
+                std::printf("Blocks: %d ThreadsPerBlock: %d\n", totalBlocks, threadsPerBlock);
+            }
+
+            // Do not print debug data for large datasets
+            results = runTest(bytes, totalBlocks, threadsPerBlock, false);
+            numDigests = results.size();
+
+            // prepare the results to be the next input data
+            totalBytes = results.size() * sizeof(SHA256Digest);
+            bytes = Conversion::convertTo<SHA256Digest, uint8_t>(results);
+        } while (numDigests > 1);
+
+    }
+}

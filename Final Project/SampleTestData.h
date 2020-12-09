@@ -75,5 +75,17 @@ HostAndDeviceMemory<uint8_t> readData8Chunks() {
     return fileData;
 }
 
+HostAndDeviceMemory<uint8_t> populateRandomData(const uint64_t dataSizeInBytes) {
+    HostAndDeviceMemory<uint8_t> fileData(dataSizeInBytes);
+
+    for (int byteCount = 0; byteCount < dataSizeInBytes; byteCount++) {
+        fileData.host()[byteCount] = (uint8_t)rand();
+    }
+
+    fileData.transferToDevice();
+    return fileData;
+}
+
+
 #endif // !SAMPLE_TEST_DATA_H
 
