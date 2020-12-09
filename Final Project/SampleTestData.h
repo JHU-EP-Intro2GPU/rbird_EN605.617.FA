@@ -78,6 +78,7 @@ HostAndDeviceMemory<uint8_t> readData8Chunks() {
 HostAndDeviceMemory<uint8_t> populateRandomData(const uint64_t dataSizeInBytes) {
     HostAndDeviceMemory<uint8_t> fileData(dataSizeInBytes);
 
+    // TODO: This could be popuulated by curand
     for (int byteCount = 0; byteCount < dataSizeInBytes; byteCount++) {
         fileData.host()[byteCount] = (uint8_t)rand();
     }
