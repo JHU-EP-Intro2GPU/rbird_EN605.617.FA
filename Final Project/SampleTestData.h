@@ -68,8 +68,23 @@ HostAndDeviceMemory<uint8_t> readData8Chunks() {
     const uint64_t fileSizeInBytes = bytesPerBlock * 8;
     HostAndDeviceMemory<uint8_t> fileData(fileSizeInBytes);
 
+    /* Original debug data: Verifies different threads/blocks behave correctly/equally
     fileData << aaa_block << baa_block << aaa_block << baa_block
         << aaa_block << baa_block << aaa_block << baa_block;
+        */
+
+    std::string blockData = baa_block;
+
+    fileData << aaa_block << baa_block;
+
+    blockData[0] = 'c'; fileData << blockData;
+    blockData[0] = 'd'; fileData << blockData;
+    blockData[0] = 'e'; fileData << blockData;
+    blockData[0] = 'r'; fileData << blockData;
+    blockData[0] = 'g'; fileData << blockData;
+    blockData[0] = 'h'; fileData << blockData;
+
+
 
     fileData.transferToDevice();
     return fileData;

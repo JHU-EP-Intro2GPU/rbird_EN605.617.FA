@@ -137,7 +137,7 @@ int main(int argc, const char* argv[]) {
         return 0;
     }
 
-    /*
+    /* Iterative testing
     runTest(readDataOneChunkOneIteration(), 1, 1, args.debug);
     runTest(readData2Chunks(), 1, 2, args.debug);
     runTest(readData2Chunks(), 2, 1, args.debug);
@@ -149,6 +149,10 @@ int main(int argc, const char* argv[]) {
 
     // test creating tree
     HostAndDeviceMemory<SHA256Digest> results = runTest(readData8Chunks(), 8, 1, args.debug);
+    if (outfile.is_open()) {
+        writeResults(results, outfile);
+    }
+
     do {
         int expectedNumberOfChunks = results.size() / 2; // 512 bit chunk converted to 256 bit digest
         //HostAndDeviceMemory<uint8_t> nextBatch = results.convertTo<uint8_t>();

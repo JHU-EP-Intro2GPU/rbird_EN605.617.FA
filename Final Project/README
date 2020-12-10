@@ -1,0 +1,30 @@
+Build:
+
+make
+
+
+Run:
+
+# Demo command line
+./merkletree.exe --debug --outfile "C:\Users\rbirdman\Desktop\outfile.bin"
+
+
+# Stress testing
+# 10 kb
+./merkletree.exe --randomBytes 10000 --debug
+
+
+# 10 MB
+./merkletree.exe --randomBytes 10000000 --debug
+
+# 50 MB
+./merkletree.exe --randomBytes 50000000 --debug
+
+# 100 MB, it takes a while for the random data generation
+# My report mentions that I should've used CuRand to
+# generate this data
+./merkletree.exe --randomBytes 100000000 --debug
+
+
+# Visual Studio Developer Console Diff Command
+devenv /diff outfile.txt outfile2.txt
